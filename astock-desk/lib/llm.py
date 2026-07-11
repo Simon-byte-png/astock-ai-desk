@@ -75,7 +75,8 @@ def chat(system, user, model=None, max_tokens=1500, temperature=None, retries=3)
         except Exception as e:
             last = e
             time.sleep(1.0 * (attempt + 1))
-    raise RuntimeError(f"LLM 调用失败: {last}")
+    host = BASE.split("//")[-1].split("/")[0]
+    raise RuntimeError(f"LLM 调用失败[{host} / {model or MODEL_FAST}]: {last}")
 
 
 def _extract_json(text):

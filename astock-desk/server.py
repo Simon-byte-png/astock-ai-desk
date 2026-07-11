@@ -53,6 +53,12 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/favicon.ico":
                 return self._send(200, "image/svg+xml",
                                   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text y="26" font-size="26">🏛️</text></svg>')
+            if path == "/api/diag":
+                return self._diag()
+            if path == "/api/config":
+                from lib import llm
+                return self._json({"llm_host": llm.BASE.split("//")[-1].split("/")[0],
+                                   "model": llm.MODEL_FAST})
             if path == "/api/index":
                 return self._json({"index": market.index_snapshot()})
             if path == "/api/search":
@@ -67,7 +73,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(backtest.backtest(q.get("code", ""), q.get("strategy", "ma")))
             if path == "/api/backtest_all":
                 return self._json(backtest.compare_all(q.get("code", "")))
-            return self._json({"error": "not found"}, 404)
+            return self._json({"error": "not found", "path": path}, 404)
         except BrokenPipeError:
             pass
         except Exception as e:
@@ -75,6 +81,22 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"error": str(e)}, 500)
             except Exception:
                 pass
+
+    def _diag(self):
+        from lib import llm
+        import time as _t
+        info = {"llm_base": llm.BASE, "model": llm.MODEL_FAST,
+                "token_head": (llm.TOKEN or "")[:8] + "…"}
+        t = _t.time()
+        try:
+            r = llm.chat("你是测试器", "只回复两个字：正常", max_tokens=2000)
+            info["ok"] = True
+            info["sample"] = r[:40]
+        except Exception as e:
+            info["ok"] = False
+            info["error"] = f"{type(e).__name__}: {e}"
+        info["ms"] = int((_t.time() - t) * 1000)
+        return self._json(info)
 
     def _file(self, rel, ctype):
         p = os.path.join(HERE, rel)
@@ -140,8 +162,19 @@ class Handler(BaseHTTPRequestHandler):
                 break
 
 
+def _llm_host():
+    from lib import llm
+    return llm.BASE.split("//")[-1].split("/")[0] + " / " + llm.MODEL_FAST
+
+
 def main():
     srv = ThreadingHTTPServer((HOST, PORT), Handler)
+    try:
+        with open(os.path.join(HERE, "preview_debug.log"), "a") as f:
+            f.write(f"=== SERVER START @ {market._beijing_now().strftime('%Y-%m-%d %H:%M:%S')} "
+                    f"llm={_llm_host()} ===\n")
+    except Exception:
+        pass
     print(f"A股AI交易委员会看板 运行在 http://{HOST}:{PORT}")
     srv.serve_forever()
 
