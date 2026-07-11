@@ -16,3 +16,5 @@ Thumbs.db
 *.db-shm
 .zaocode/
 /share/
+.daymug-uploads/
+.codex/

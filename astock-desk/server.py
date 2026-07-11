@@ -50,6 +50,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if path in ("/", "/index.html"):
                 return self._file("web/index.html", "text/html; charset=utf-8")
+            if path == "/health":
+                return self._json({"ok": True, "service": "astock-desk"})
             if path == "/favicon.ico":
                 return self._send(200, "image/svg+xml",
                                   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text y="26" font-size="26">🏛️</text></svg>')
