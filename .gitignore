@@ -1,0 +1,18 @@
+# zaocode auto-managed
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+*.log
+.cache/
+.next/
+.nuxt/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.zaocode/
+/share/
