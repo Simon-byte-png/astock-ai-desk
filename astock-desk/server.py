@@ -24,6 +24,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
+    _picks_cache = None
 
     def log_message(self, *a):
         pass
@@ -63,6 +64,14 @@ class Handler(BaseHTTPRequestHandler):
                                    "model": llm.MODEL_FAST})
             if path == "/api/index":
                 return self._json({"index": market.index_snapshot()})
+            if path == "/api/movers":
+                sort = q.get("type", "gainers")
+                n = min(int(q.get("n", 18) or 18), 40)
+                return self._json({"type": sort, "title": market._MOVER_TITLE.get(sort, sort),
+                                   "session": market.market_session(),
+                                   "list": market.market_movers(sort, n)})
+            if path == "/api/ai_picks":
+                return self._ai_picks()
             if path == "/api/search":
                 return self._json({"results": market.search(q.get("q", ""))})
             if path == "/api/quote":
@@ -83,6 +92,20 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"error": str(e)}, 500)
             except Exception:
                 pass
+
+    def _ai_picks(self):
+        import time as _t
+        now = _t.time()
+        cached = Handler._picks_cache
+        if cached and now - cached[0] < 300:   # 5分钟缓存
+            return self._json({**cached[1], "cached": True})
+        gainers = market.market_movers("gainers", 16, exclude_limit=True)
+        amount = market.market_movers("amount", 12)
+        if not gainers and not amount:
+            return self._json({"error": "暂时拉取不到行情榜单，请稍后重试", "picks": []})
+        res = agents.ai_picks(gainers, amount)
+        Handler._picks_cache = (now, res)
+        return self._json({**res, "cached": False})
 
     def _diag(self):
         from lib import llm

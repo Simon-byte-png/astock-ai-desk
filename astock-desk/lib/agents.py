@@ -141,6 +141,35 @@ def explain(term, context=""):
     return llm.chat_json(EXPLAIN_SYS, user, max_tokens=4000)
 
 
+# ============ 首页：AI 市场精选（研究性，非荐股） ============
+PICK_SYS = """你是A股市场扫描分析师。用户给你今日的异动榜单(涨幅榜/成交额榜等，含价、涨跌幅、换手率、成交额、市盈率)。
+你的任务：从中挑出 4-6 只【值得进一步研究】的标的，给出研究理由与风险提示。
+纪律：
+- 这不是荐股，是"值得研究"的线索；对追高、连板、纯题材炒作、高换手高波动要明确警示。
+- 优先挑逻辑更均衡的：涨幅温和放量、有成交额支撑、估值不极端的，比单纯暴涨更值得研究。
+- reason 讲清"为什么值得看一眼"，risk 讲清"要警惕什么"，都要具体、≤28字。
+输出紧凑 JSON：
+{"market_note":"一句话今日市场情绪≤30字",
+ "picks":[{"code":"代码","name":"名称","tag":"标签(如 趋势放量/量能活跃/超跌反弹/龙头),
+           "heat":0-100热度,"reason":"值得研究的理由≤28字","risk":"风险提示≤28字"}]}"""
+
+def ai_picks(gainers, others):
+    seen, cand = set(), []
+    for src in (gainers, others):
+        for it in src:
+            if it["code"] in seen:
+                continue
+            seen.add(it["code"])
+            cand.append({k: it.get(k) for k in ("code", "name", "pct", "turnover",
+                         "amount_yi", "pe")})
+    payload = {"今日异动候选": cand[:22]}
+    out = llm.chat_json(PICK_SYS, "榜单数据：\n" + _j(payload), model=llm.MODEL_STRONG, max_tokens=4500)
+    if "picks" not in out:
+        out = {"market_note": "", "picks": []}
+    out["disclaimer"] = DISCLAIMER
+    return out
+
+
 # ============ 委员会总编排 ============
 def run_committee(code, progress=None):
     def p(step, label):

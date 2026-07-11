@@ -124,6 +124,36 @@
   .sess.rest{background:rgba(139,151,171,.16);color:var(--sub)}
   .stale-banner{background:#3a1414;border:1px solid #6b2020;color:#ff9a9a;font-size:13px;
     padding:10px 13px;border-radius:10px;margin:10px 0}
+  /* 市场扫描 */
+  .scan{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:16px}
+  @media(max-width:820px){.scan{grid-template-columns:1fr}}
+  .scanpanel{padding:14px}
+  .scanhead{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .scanhead h3{margin:0}
+  .scantabs{display:flex;gap:5px;flex-wrap:wrap}
+  .scantab{font-size:12px;padding:4px 11px;border-radius:16px;background:var(--panel2);
+    border:1px solid var(--line);cursor:pointer;color:var(--sub)}
+  .scantab.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  table.movers{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.movers th{color:var(--sub);font-weight:600;text-align:right;padding:5px 6px;font-size:11px;
+    border-bottom:1px solid var(--line)}
+  table.movers th:first-child,table.movers td:first-child{text-align:left}
+  table.movers td{padding:6px;border-bottom:1px solid #1c2432}
+  table.movers tr{cursor:pointer}
+  table.movers tbody tr:hover{background:var(--panel2)}
+  .mv-name{font-weight:600;color:var(--txt)}
+  .mv-code{color:var(--sub);font-size:11px;margin-left:5px}
+  .mv-ind{color:var(--sub);font-size:11px}
+  .pick{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px 12px;
+    margin-bottom:8px;cursor:pointer;transition:.12s}
+  .pick:hover{border-color:var(--acc2)}
+  .pick .ph{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pick .pname{font-weight:700}
+  .pick .ptag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:14px;background:rgba(59,130,246,.15);color:var(--acc2)}
+  .pick .pheat{margin-left:auto;font-size:11px;color:var(--gold)}
+  .pick .preason{font-size:12.5px;color:#cdd6e4;margin-top:5px}
+  .pick .prisk{font-size:12px;color:#f0b072;margin-top:3px}
+  .pick .go{font-size:11px;color:var(--acc);margin-top:5px}
 </style>
 </head>
 <body>
@@ -142,6 +172,25 @@
     <div id="suggest"></div>
   </div>
   <div class="quick" id="quick"></div>
+
+  <div class="scan">
+    <div class="panel scanpanel">
+      <div class="scanhead">
+        <h3>📡 实时市场扫描</h3>
+        <div class="scantabs" id="scantabs"></div>
+        <span class="muted" id="scanmeta" style="margin-left:auto"></span>
+      </div>
+      <div id="moverList"><div class="empty">加载榜单…</div></div>
+    </div>
+    <div class="panel scanpanel">
+      <div class="scanhead">
+        <h3>🤖 AI 精选（研究性 · 非荐股）</h3>
+        <button class="ghost" id="pickBtn" onclick="loadPicks(true)" style="margin-left:auto;padding:7px 14px">刷新精选</button>
+      </div>
+      <div class="muted" id="pickNote" style="margin:2px 0 8px"></div>
+      <div id="pickList"><div class="empty">AI 正在从今日异动里挑值得研究的标的…</div></div>
+    </div>
+  </div>
 
   <div class="grid">
     <div class="panel" id="quotePanel"><div class="empty">🔍 搜索一只股票开始</div></div>
@@ -228,6 +277,9 @@ const TIPS = {
   "T+1":"A股当天买入的股票要到下一个交易日才能卖出的制度。",
   "滑点":"实际成交价与预期价的偏差，尤其在急涨急跌或流动性差时明显。",
   "综合评分":"三位分析师打分的平均，正=偏多、负=偏空，仅供参考。",
+  "现价":"当前最新成交价（盘中约每几秒更新，收盘后为收盘价）。",
+  "涨跌幅":"相对昨日收盘价的涨跌百分比。红涨绿跌（A股习惯）。",
+  "成交额":"当天买卖成交的总金额（元）。成交额越大，说明资金关注度越高、流动性越好。",
 };
 function tipText(k){ return TIPS[k] || null; }
 
@@ -496,8 +548,56 @@ function drawEquity(curve){
   ctx.fillStyle='#3b82f6';ctx.fillText('■ 策略',pad,14); ctx.fillStyle='#6b7280';ctx.fillText('■ 买入持有',pad+56,14);
 }
 
+/* ---------- 市场扫描榜单 ---------- */
+const MOVER_TABS = [['gainers','涨幅榜'],['amount','成交额榜'],['turnover','换手活跃'],['decliners','跌幅榜']];
+let curMover = 'gainers';
+$('#scantabs').innerHTML = MOVER_TABS.map(([k,l])=>`<span class="scantab${k===curMover?' on':''}" data-k="${k}" onclick="switchMover('${k}')">${l}</span>`).join('');
+function switchMover(k){ curMover=k; document.querySelectorAll('.scantab').forEach(t=>t.classList.toggle('on',t.dataset.k===k)); loadMovers(); }
+const SESS_SHORT={pre:'未开盘',morning:'早盘',noon:'午休',afternoon:'午盘',closed:'已收盘',weekend:'周末休市'};
+async function loadMovers(){
+  $('#moverList').innerHTML='<div class="empty"><span class="spin"></span> 加载榜单…</div>';
+  const d = await jget('api/movers?type='+curMover+'&n=16');
+  const meta = $('#scanmeta'); meta.textContent = SESS_SHORT[d.session]? ('· '+SESS_SHORT[d.session]) : '';
+  const list = d.list||[];
+  if(!list.length){ $('#moverList').innerHTML='<div class="empty">暂时拉取不到榜单，稍后自动重试</div>'; return; }
+  const rows = list.map((s,i)=>`<tr onclick="pickStock('${s.code}')">
+    <td><span class="muted" style="margin-right:6px">${i+1}</span><span class="mv-name">${s.name}</span><span class="mv-code">${s.code}</span></td>
+    <td>${fmtNum(s.price)}</td>
+    <td style="color:${colorPct(s.pct)}">${s.pct>0?'+':''}${fmtNum(s.pct)}%</td>
+    <td>${fmtNum(s.turnover)}%</td>
+    <td>${s.amount_yi!=null?fmtNum(s.amount_yi,1)+'亿':'—'}</td>
+    <td>${s.pe!=null?fmtNum(s.pe,1):'—'}</td>
+  </tr>`).join('');
+  $('#moverList').innerHTML = `<table class="movers"><thead><tr>
+     <th>名称</th><th data-tip="现价" class="tip">现价</th><th data-tip="涨跌幅" class="tip">涨跌</th>
+     <th data-tip="换手率" class="tip">换手</th><th data-tip="成交额" class="tip">成交额</th>
+     <th data-tip="市盈率" class="tip">PE</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function pickStock(code){ $('#q').value=code; loadQuote(); document.querySelector('.grid').scrollIntoView({behavior:'smooth',block:'start'}); }
+
+async function loadPicks(force){
+  $('#pickList').innerHTML='<div class="empty"><span class="spin"></span> AI 正在研判今日异动（约15-25s）…</div>';
+  $('#pickNote').textContent='';
+  try{
+    const d = await jget('api/ai_picks'+(force?'?f=1':''));
+    if(d.error){ $('#pickList').innerHTML=`<div class="empty">${d.error}</div>`; return; }
+    $('#pickNote').textContent = (d.market_note?('📊 '+d.market_note):'') + (d.cached?'　(5分钟缓存)':'');
+    const picks = d.picks||[];
+    if(!picks.length){ $('#pickList').innerHTML='<div class="empty">今日暂无明显值得研究的标的</div>'; return; }
+    $('#pickList').innerHTML = picks.map(p=>`<div class="pick" onclick="pickStock('${(p.code||'').replace(/[^0-9]/g,'')}')">
+      <div class="ph"><span class="pname">${p.name||''}</span><span class="mv-code">${p.code||''}</span>
+        ${p.tag?`<span class="ptag">${p.tag}</span>`:''}<span class="pheat">🔥 ${p.heat??''}</span></div>
+      ${p.reason?`<div class="preason">💡 ${p.reason}</div>`:''}
+      ${p.risk?`<div class="prisk">⚠️ ${p.risk}</div>`:''}
+      <div class="go">点击 → 载入并可召开投资委员会深度分析 →</div>
+    </div>`).join('') + `<div class="muted" style="margin-top:6px">${d.disclaimer||''}</div>`;
+  }catch(e){ $('#pickList').innerHTML='<div class="empty">精选加载失败，请点「刷新精选」重试</div>'; }
+}
+
 loadTicker(); setInterval(loadTicker, 30000);
 $('#llmbadge').textContent = 'LLM: mimo-v2.5';
+loadMovers(); setInterval(()=>{ if(document.visibilityState==='visible') loadMovers(); }, 60000);
+loadPicks(false);
 </script>
 </body>
 </html>

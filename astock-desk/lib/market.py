@@ -401,6 +401,64 @@ def indicators(closes, highs=None, lows=None, vols=None):
         "ma_series": {p: _ma(closes, p) for p in (5, 20, 60) if n >= p},
     }
 
+# ---------- 市场扫描 / 异动排行榜（新浪数据源，稳定） ----------
+_SINA_SORT = {"gainers": "changepercent", "decliners": "changepercent",
+              "turnover": "turnoverratio", "amount": "amount"}
+_MOVER_TITLE = {"gainers": "涨幅榜", "decliners": "跌幅榜",
+                "turnover": "换手活跃", "amount": "成交额榜"}
+
+def market_movers(sort="gainers", n=20, exclude_st=True, exclude_limit=False):
+    """新浪排行榜。仅沪深主板/创业板/科创板，排除北交所、ST、退市、新股首日。
+    返回 [{code,name,price,pct,turnover,amount_yi,pe}, ...]"""
+    s = _SINA_SORT.get(sort, "changepercent")
+    asc = 1 if sort == "decliners" else 0
+    out = []
+    for page in (1, 2, 3):
+        url = ("https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/"
+               f"Market_Center.getHQNodeData?page={page}&num=40&sort={s}&asc={asc}"
+               "&node=hs_a&symbol=&_s_r_a=page")
+        txt = _get(url, headers={"Referer": "https://finance.sina.com.cn"}, ttl=20, retries=4)
+        if not txt:
+            continue
+        try:
+            arr = json.loads(txt)
+        except Exception:
+            continue
+        for it in arr:
+            code = (it.get("code") or "").strip()
+            name = (it.get("name") or "").strip()
+            if not code or not name or code[0] not in ("6", "0", "3"):
+                continue  # 排除北交所(8/4/9开头)
+            if exclude_st and ("ST" in name.upper() or "退" in name):
+                continue
+            if name.startswith("N"):
+                continue  # 新股首日无涨跌幅限制，剔除以免误导
+            pct = _f(it.get("changepercent"))
+            if exclude_limit and pct is not None and pct >= 9.8:
+                continue
+            amt = _f(it.get("amount"))
+            out.append({
+                "code": code, "name": name,
+                "price": _f(it.get("trade")), "pct": pct,
+                "turnover": _f(it.get("turnoverratio")),
+                "amount_yi": (round(amt / 1e8, 2) if amt is not None else None),
+                "pe": _f(it.get("per")),
+            })
+            if len(out) >= n:
+                break
+        if len(out) >= n:
+            break
+    return out
+
+def _f(v):
+    try:
+        if v in (None, "-", ""):
+            return None
+        return float(v)
+    except Exception:
+        return None
+
+
 # ---------- 大盘指数快照 ----------
 def index_snapshot():
     txt = _get("https://qt.gtimg.cn/q=sh000001,sz399001,sz399006,sh000300", ttl=5, encoding="gbk")
