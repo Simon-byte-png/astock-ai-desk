@@ -1,32 +1,30 @@
 # -*- coding: utf-8 -*-
-"""
-A股 AI 交易委员会 —— Web 盯盘看板后端（stdlib，无第三方依赖）。
-绑定 $HOST:$PORT（平台注入）。API：
-  GET /                      看板页面
-  GET /api/index             大盘指数快照
-  GET /api/search?q=         股票搜索
-  GET /api/quote?code=       实时报价 + 技术指标 + K线
-  GET /api/committee?code=   [SSE] 召开委员会，流式推送进度与最终结论
-  GET /api/explain?term=&context=   按需术语教学卡片
-  GET /api/backtest?code=&strategy=  单策略回测
-  GET /api/backtest_all?code=        三策略对比
-"""
-import os, json, threading, queue
+"""躬行 Praxis：金融教育模拟盘后端，零第三方依赖。"""
+import json
+import os
+import queue
+import secrets
+import threading
+import time
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
-from lib import market, agents, backtest
+from lib import agents, backtest, market, portfolio
 
 HOST = os.environ.get("HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT") or os.environ.get("ZAOCODE_PREVIEW_PORT") or 8000)
 HERE = os.path.dirname(os.path.abspath(__file__))
+MAX_BODY = 64 * 1024
 
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     _picks_cache = None
+    _court_attempts = {}
+    _court_lock = threading.Lock()
 
-    def log_message(self, *a):
+    def log_message(self, *args):
         pass
 
     def _send(self, code, ctype, body, extra=None):
@@ -35,173 +33,340 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        for k, v in (extra or {}).items():
-            self.send_header(k, v)
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "same-origin")
+        for key, value in (extra or {}).items():
+            self.send_header(key, value)
         self.end_headers()
         self.wfile.write(body)
 
-    def _json(self, obj, code=200):
-        self._send(code, "application/json; charset=utf-8",
-                   json.dumps(obj, ensure_ascii=False, default=str))
+    def _json(self, obj, code=200, extra=None):
+        self._send(
+            code, "application/json; charset=utf-8",
+            json.dumps(obj, ensure_ascii=False, default=str), extra=extra,
+        )
+
+    def _body_json(self):
+        raw_length = self.headers.get("Content-Length", "0")
+        try:
+            length = int(raw_length)
+        except ValueError:
+            raise ValueError("Content-Length 无效")
+        if length <= 0:
+            return {}
+        if length > MAX_BODY:
+            raise OverflowError("请求体过大")
+        raw = self.rfile.read(length)
+        try:
+            body = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError):
+            raise ValueError("请求体必须是合法 JSON")
+        if not isinstance(body, dict):
+            raise ValueError("请求体必须是 JSON 对象")
+        return body
+
+    def _user_id(self):
+        cookie = SimpleCookie()
+        try:
+            cookie.load(self.headers.get("Cookie", ""))
+        except Exception:
+            pass
+        value = cookie.get("praxis_user")
+        return portfolio.ensure_user(value.value if value else None)
+
+    @staticmethod
+    def _cookie_header(user_id):
+        return (
+            f"praxis_user={user_id}; Path=/; HttpOnly; SameSite=Lax; "
+            "Max-Age=31536000"
+        )
 
     def do_GET(self):
-        u = urlparse(self.path)
-        path = u.path
-        q = {k: v[0] for k, v in parse_qs(u.query).items()}
+        parsed = urlparse(self.path)
+        path = parsed.path
+        query = {key: values[0] for key, values in parse_qs(parsed.query).items()}
         try:
             if path in ("/", "/index.html"):
                 return self._file("web/index.html", "text/html; charset=utf-8")
-            if path == "/health":
-                return self._json({"ok": True, "service": "astock-desk"})
             if path == "/favicon.ico":
-                return self._send(200, "image/svg+xml",
-                                  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text y="26" font-size="26">🏛️</text></svg>')
+                return self._send(
+                    200, "image/svg+xml",
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+                    '<text y="26" font-size="26">🧭</text></svg>',
+                )
+            if path == "/health":
+                return self._json({"ok": True, "service": "praxis"})
+            if path == "/api/config":
+                return self._config()
             if path == "/api/diag":
                 return self._diag()
-            if path == "/api/config":
-                from lib import llm
-                return self._json({"llm_host": llm.BASE.split("//")[-1].split("/")[0],
-                                   "model": llm.MODEL_FAST})
             if path == "/api/index":
                 return self._json({"index": market.index_snapshot()})
             if path == "/api/movers":
-                sort = q.get("type", "gainers")
-                n = min(int(q.get("n", 18) or 18), 40)
-                return self._json({"type": sort, "title": market._MOVER_TITLE.get(sort, sort),
-                                   "session": market.market_session(),
-                                   "list": market.market_movers(sort, n)})
+                mover_type = query.get("type", "gainers")
+                count = min(max(int(query.get("n", 18) or 18), 1), 40)
+                return self._json({
+                    "type": mover_type,
+                    "title": market._MOVER_TITLE.get(mover_type, mover_type),
+                    "session": market.market_session(),
+                    "list": market.market_movers(mover_type, count),
+                })
             if path == "/api/ai_picks":
-                return self._ai_picks()
+                return self._ai_picks(force=query.get("f") == "1")
             if path == "/api/search":
-                return self._json({"results": market.search(q.get("q", ""))})
+                return self._json({"results": market.search(query.get("q", ""))})
             if path == "/api/quote":
-                return self._quote(q.get("code", ""))
+                return self._quote(query.get("code", ""))
             if path == "/api/committee":
-                return self._committee_sse(q.get("code", ""))
+                return self._committee_sse(query.get("code", ""))
+            if path == "/api/court":
+                return self._court_sse(query.get("code", ""))
             if path == "/api/explain":
-                return self._json(agents.explain(q.get("term", ""), q.get("context", "")))
+                return self._json(agents.explain(
+                    query.get("term", ""), query.get("context", "")
+                ))
             if path == "/api/backtest":
-                return self._json(backtest.backtest(q.get("code", ""), q.get("strategy", "ma")))
+                return self._json(backtest.backtest(
+                    query.get("code", ""), query.get("strategy", "ma")
+                ))
             if path == "/api/backtest_all":
-                return self._json(backtest.compare_all(q.get("code", "")))
+                return self._json(backtest.compare_all(query.get("code", "")))
+            if path == "/api/portfolio":
+                user_id = self._user_id()
+                return self._json(
+                    portfolio.valuation(user_id),
+                    extra={"Set-Cookie": self._cookie_header(user_id)},
+                )
             return self._json({"error": "not found", "path": path}, 404)
         except BrokenPipeError:
             pass
-        except Exception as e:
-            try:
-                self._json({"error": str(e)}, 500)
-            except Exception:
-                pass
+        except ValueError as exc:
+            self._safe_error(str(exc), 400)
+        except Exception as exc:
+            self._safe_error(str(exc), 500)
 
-    def _ai_picks(self):
-        import time as _t
-        now = _t.time()
-        cached = Handler._picks_cache
-        if cached and now - cached[0] < 300:   # 5分钟缓存
-            return self._json({**cached[1], "cached": True})
-        gainers = market.market_movers("gainers", 16, exclude_limit=True)
-        amount = market.market_movers("amount", 12)
-        if not gainers and not amount:
-            return self._json({"error": "暂时拉取不到行情榜单，请稍后重试", "picks": []})
-        res = agents.ai_picks(gainers, amount)
-        Handler._picks_cache = (now, res)
-        return self._json({**res, "cached": False})
+    def do_POST(self):
+        path = urlparse(self.path).path
+        try:
+            body = self._body_json()
+            if path == "/api/gate":
+                return self._json(agents.gate_check(body.get("answers")))
+            if path == "/api/order":
+                return self._place_order(body)
+            if path == "/api/court/verdict":
+                return self._court_verdict(body)
+            if path == "/api/review":
+                return self._review()
+            if path == "/api/tts":
+                return self._tts(body)
+            return self._json({"error": "not found", "path": path}, 404)
+        except OverflowError as exc:
+            self._safe_error(str(exc), 413)
+        except ValueError as exc:
+            self._safe_error(str(exc), 400)
+        except BrokenPipeError:
+            pass
+        except Exception as exc:
+            self._safe_error(str(exc), 500)
+
+    def _safe_error(self, message, status):
+        try:
+            self._json({"error": message}, status)
+        except Exception:
+            pass
+
+    def _file(self, relative_path, content_type):
+        path = os.path.join(HERE, relative_path)
+        if not os.path.isfile(path):
+            return self._json({"error": "file missing"}, 404)
+        with open(path, "rb") as handle:
+            return self._send(200, content_type, handle.read())
+
+    def _config(self):
+        from lib import llm
+        return self._json({
+            "brand": "躬行 Praxis",
+            "llm": llm.provider_status(),
+            "features": {
+                "market": True, "portfolio": True, "court": True,
+                "review": True, "tts": bool(llm.STEP_KEY),
+            },
+        })
 
     def _diag(self):
         from lib import llm
-        import time as _t
-        info = {"llm_base": llm.BASE, "model": llm.MODEL_FAST,
-                "token_head": (llm.TOKEN or "")[:8] + "…"}
-        t = _t.time()
+        result = {"providers": llm.provider_status()}
+        started = time.time()
         try:
-            r = llm.chat("你是测试器", "只回复两个字：正常", max_tokens=2000)
-            info["ok"] = True
-            info["sample"] = r[:40]
-        except Exception as e:
-            info["ok"] = False
-            info["error"] = f"{type(e).__name__}: {e}"
-        info["ms"] = int((_t.time() - t) * 1000)
-        return self._json(info)
-
-    def _file(self, rel, ctype):
-        p = os.path.join(HERE, rel)
-        if not os.path.exists(p):
-            return self._json({"error": "file missing"}, 404)
-        with open(p, "rb") as f:
-            self._send(200, ctype, f.read())
+            sample = llm.chat("你是连通性测试器", "只回复：正常", max_tokens=40)
+            result.update({"ok": True, "sample": sample[:40]})
+        except Exception as exc:
+            result.update({"ok": False, "error": str(exc)})
+        result["ms"] = int((time.time() - started) * 1000)
+        return self._json(result)
 
     def _quote(self, code):
         if not code:
             return self._json({"error": "缺少 code"}, 400)
-        qd = market.quote(code)
-        ks = market.kline(code, "day", 120)
-        closes = [k["close"] for k in ks]
-        ind = market.indicators(closes, [k["high"] for k in ks], [k["low"] for k in ks]) if closes else {}
-        status = market.data_status(qd, ks)
+        quote = market.quote(code)
+        klines = market.kline(code, "day", 120)
+        closes = [item["close"] for item in klines]
+        indicators = market.indicators(
+            closes, [item["high"] for item in klines], [item["low"] for item in klines]
+        ) if closes else {}
         return self._json({
-            "quote": qd,
-            "indicators": ind,
-            "data_status": status,
+            "quote": quote,
+            "indicators": indicators,
+            "data_status": market.data_status(quote, klines),
             "server_time": market._beijing_now().strftime("%Y-%m-%d %H:%M:%S"),
-            "kline_date_range": [ks[0]["date"], ks[-1]["date"]] if ks else None,
-            "kline": [{"date": k["date"], "close": k["close"], "open": k["open"],
-                       "high": k["high"], "low": k["low"]} for k in ks[-90:]],
+            "kline_date_range": [klines[0]["date"], klines[-1]["date"]] if klines else None,
+            "kline": [
+                {key: item[key] for key in ("date", "close", "open", "high", "low")}
+                for item in klines[-90:]
+            ],
         })
 
-    def _committee_sse(self, code):
-        """SSE：先推送若干 progress 事件，最后推送 result 事件。"""
-        if not code:
-            return self._json({"error": "缺少 code"}, 400)
+    def _ai_picks(self, force=False):
+        now = time.time()
+        cached = Handler._picks_cache
+        if cached and not force and now - cached[0] < 300:
+            return self._json({**cached[1], "cached": True})
+        gainers = market.market_movers("gainers", 16, exclude_limit=True)
+        amount = market.market_movers("amount", 12)
+        if not gainers and not amount:
+            return self._json({"error": "暂时拉取不到行情榜单", "picks": []})
+        result = agents.ai_picks(gainers, amount)
+        Handler._picks_cache = (now, result)
+        return self._json({**result, "cached": False})
+
+    def _sse(self, worker):
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-cache")
         self.send_header("X-Accel-Buffering", "no")
         self.send_header("Connection", "close")
         self.end_headers()
-        self.protocol_version = "HTTP/1.1"
+        events = queue.Queue()
 
-        evq = queue.Queue()
+        def progress(step, label):
+            events.put(("progress", {"step": step, "label": label}))
 
-        def worker():
-            def progress(step, label):
-                evq.put(("progress", {"step": step, "label": label}))
+        def run():
             try:
-                out = agents.run_committee(code, progress=progress)
-                evq.put(("result", out))
-            except Exception as e:
-                evq.put(("result", {"error": str(e)}))
+                events.put(("result", worker(progress)))
+            except Exception as exc:
+                events.put(("result", {"error": str(exc)}))
             finally:
-                evq.put(("__done__", None))
+                events.put(("__done__", None))
 
-        t = threading.Thread(target=worker, daemon=True)
-        t.start()
+        threading.Thread(target=run, daemon=True).start()
         while True:
-            ev, data = evq.get()
-            if ev == "__done__":
+            event, data = events.get()
+            if event == "__done__":
                 break
+            chunk = (
+                f"event: {event}\n"
+                f"data: {json.dumps(data, ensure_ascii=False, default=str)}\n\n"
+            )
             try:
-                chunk = f"event: {ev}\ndata: {json.dumps(data, ensure_ascii=False, default=str)}\n\n"
                 self.wfile.write(chunk.encode("utf-8"))
                 self.wfile.flush()
             except (BrokenPipeError, ConnectionResetError):
                 break
 
+    def _committee_sse(self, code):
+        if not code:
+            return self._json({"error": "缺少 code"}, 400)
+        return self._sse(lambda progress: agents.run_committee(code, progress))
+
+    def _court_sse(self, code):
+        if not code:
+            return self._json({"error": "缺少 code"}, 400)
+
+        def worker(progress):
+            full = agents.run_court(code, progress)
+            if full.get("error"):
+                return full
+            attempt_id = secrets.token_urlsafe(18)
+            secret_answer = {
+                "flaw_id": full.pop("flaw_id", ""),
+                "flaw_type": full.pop("flaw_type", ""),
+                "flaw_explain": full.pop("flaw_explain", ""),
+                "created_at": time.time(),
+            }
+            with Handler._court_lock:
+                cutoff = time.time() - 3600
+                Handler._court_attempts = {
+                    key: value for key, value in Handler._court_attempts.items()
+                    if value["created_at"] > cutoff
+                }
+                Handler._court_attempts[attempt_id] = secret_answer
+            full["attempt_id"] = attempt_id
+            return full
+
+        return self._sse(worker)
+
+    def _court_verdict(self, body):
+        attempt_id = str(body.get("attempt_id") or "")
+        choice = str(body.get("choice") or "")
+        with Handler._court_lock:
+            answer = Handler._court_attempts.pop(attempt_id, None)
+        if not answer:
+            return self._json({"error": "本次庭审已过期，请重新开庭"}, 404)
+        return self._json({
+            "correct": choice == answer["flaw_id"],
+            "your_choice": choice,
+            "flaw_id": answer["flaw_id"],
+            "flaw_type": answer["flaw_type"],
+            "flaw_explain": answer["flaw_explain"],
+        })
+
+    def _place_order(self, body):
+        gate = agents.gate_check(body.get("answers"))
+        if not gate.get("passed"):
+            return self._json({"error": "三问尚未通过", "gate": gate}, 422)
+        user_id = self._user_id()
+        result = portfolio.place_order(
+            user_id=user_id,
+            code=body.get("code", ""),
+            side=body.get("side", ""),
+            qty=body.get("qty", 0),
+            answers=body.get("answers") or {},
+            emotion=body.get("emotion", ""),
+            research=body.get("research") or {},
+        )
+        result["gate"] = gate
+        return self._json(
+            result, extra={"Set-Cookie": self._cookie_header(user_id)}
+        )
+
+    def _review(self):
+        user_id = self._user_id()
+        data = portfolio.valuation(user_id)
+        letter = agents.review_letter(list(reversed(data["decisions"])), data["positions"])
+        return self._json(
+            {"review": letter, "generated_at": market._beijing_now().isoformat()},
+            extra={"Set-Cookie": self._cookie_header(user_id)},
+        )
+
+    def _tts(self, body):
+        from lib import llm
+        audio = llm.tts(body.get("text", ""), body.get("voice"))
+        return self._send(
+            200, "audio/mpeg", audio,
+            extra={"Cache-Control": "private, max-age=3600"},
+        )
+
 
 def _llm_host():
     from lib import llm
-    return llm.BASE.split("//")[-1].split("/")[0] + " / " + llm.MODEL_FAST
+    return llm.DEEPSEEK_BASE.split("//")[-1].split("/")[0] + " / " + llm.MODEL_FAST
 
 
 def main():
-    srv = ThreadingHTTPServer((HOST, PORT), Handler)
-    try:
-        with open(os.path.join(HERE, "preview_debug.log"), "a") as f:
-            f.write(f"=== SERVER START @ {market._beijing_now().strftime('%Y-%m-%d %H:%M:%S')} "
-                    f"llm={_llm_host()} ===\n")
-    except Exception:
-        pass
-    print(f"A股AI交易委员会看板 运行在 http://{HOST}:{PORT}")
-    srv.serve_forever()
+    server = ThreadingHTTPServer((HOST, PORT), Handler)
+    print(f"躬行 Praxis 运行在 http://{HOST}:{PORT} · LLM {_llm_host()}")
+    server.serve_forever()
 
 
 if __name__ == "__main__":
