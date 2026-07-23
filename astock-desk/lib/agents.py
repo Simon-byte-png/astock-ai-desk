@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """面向理财新手的研究委员会、灵魂三问、多空法庭和复盘教练。"""
 import json
+import random
 import re
 
 from . import llm, market
@@ -273,6 +274,125 @@ def run_court(code, progress=None):
         "disclaimer": DISCLAIMER,
     })
     return out
+
+
+ROOKIE_COURT_SYS = _prompt("""你是「牛熊裁判·新手局」的出题人，面向从没接触过投资的年轻人。
+围绕给定的生活决策场景，写支持方（bull）3条、反对方（bear）3条口语化短论据——像朋友聊天，禁止金融术语。
+其中必须且只能有一条埋入指定类型的逻辑缺陷，其余五条都要站得住脚。
+缺陷类型从：只看账面不看原因、幸存者偏差、因果倒置、过度外推、锚定效应 中选一个。
+输出 JSON：
+{"scene":"场景一句话≤30字","bull":[{"id":"bull-1","text":"≤45字"}],
+"bear":[{"id":"bear-1","text":"≤45字"}],"flaw_id":"有缺陷论据的id","flaw_type":"缺陷类型",
+"flaw_explain":"为什么有毛病、生活里怎么核验≤80字"}""")
+
+ROOKIE_TOPICS = [
+    "朋友拉你合伙加盟一家奶茶店",
+    "健身房推销员劝你办三年卡",
+    "网红在直播间卖 99 元理财课",
+    "同学劝你囤一批限量球鞋等升值",
+    "中介说这个小区房价三年翻了一倍，现在上车正合适",
+    "室友想借你的花呗额度做代购生意",
+    "短视频博主晒收益，喊你跟着抄作业买基金",
+    "亲戚说某款保险「稳赚不赔」，劝你给全家都配上",
+]
+
+_ROOKIE_FALLBACK = [
+    {
+        "scene": "朋友拉你合伙加盟一家奶茶店",
+        "bull": [
+            {"id": "bull-1", "text": "加盟商说去年有店主一年就回了本，跟着做也差不到哪去。"},
+            {"id": "bull-2", "text": "这个牌子最近半年在咱们市新开了八家店，招牌确实有人认。"},
+            {"id": "bull-3", "text": "店址就在学校门口，放学那波人流是实打实的。"},
+        ],
+        "bear": [
+            {"id": "bear-1", "text": "加盟费加装修先砸进去二十万，这笔钱亏得起吗？"},
+            {"id": "bear-2", "text": "那条街上已经有五家奶茶店了，凭什么新开的能赢？"},
+            {"id": "bear-3", "text": "合同里写了原料必须从总部进货，价格人家说了算。"},
+        ],
+        "flaw_id": "bull-1", "flaw_type": "幸存者偏差",
+        "flaw_explain": "加盟商只讲活下来的店，倒闭的店没人发朋友圈。核验办法：去问去年开的店总共几家、现在还剩几家。",
+    },
+    {
+        "scene": "健身房推销员劝你办三年卡",
+        "bull": [
+            {"id": "bull-1", "text": "算下来每次锻炼才十块钱，比单次买划算太多了。"},
+            {"id": "bull-2", "text": "就在你家楼下，下楼就到，坚持的成本确实低。"},
+            {"id": "bull-3", "text": "器械和淋浴间是新装修的，环境肉眼可见地好。"},
+        ],
+        "bear": [
+            {"id": "bear-1", "text": "健身房最赚钱的，就是办了卡从来不来的人。"},
+            {"id": "bear-2", "text": "一次预付三年的钱，店要是关门跑路找谁去？"},
+            {"id": "bear-3", "text": "先买十次卡试两个月，坚持得下来再谈长期的。"},
+        ],
+        "flaw_id": "bull-1", "flaw_type": "过度外推",
+        "flaw_explain": "「每次十块」这笔账假设你一年去两百次。核验办法：翻翻去年，你真正去锻炼了几次？",
+    },
+    {
+        "scene": "网红在直播间卖 99 元理财课",
+        "bull": [
+            {"id": "bull-1", "text": "讲师晒了自己账户，三年翻了十倍，方法肯定有效。"},
+            {"id": "bull-2", "text": "99 块不算贵，就当给自己买一次学习机会。"},
+            {"id": "bull-3", "text": "课程目录里确实有讲记账和分辨骗局的基础内容。"},
+        ],
+        "bear": [
+            {"id": "bear-1", "text": "真能稳定翻倍的人，一般不靠卖 99 元的课赚钱。"},
+            {"id": "bear-2", "text": "晒出来的收益截图，你没有任何办法验证真假。"},
+            {"id": "bear-3", "text": "评论区的好评可能是买的，别当成真实口碑。"},
+        ],
+        "flaw_id": "bull-1", "flaw_type": "幸存者偏差",
+        "flaw_explain": "你只看到晒出来的那一个账户，看不到跟着学亏了的人。核验办法：问一句「亏过的学员在哪里」。",
+    },
+]
+
+WITNESS_SYS = _prompt("""你是法庭传唤的中立证人。面对一条论据，给新手一条苏格拉底式提示：
+不判断这条论据对错、不透露它是否有缺陷，只指出应该去核验什么、或该问自己什么问题。
+输出 JSON：{"hint":"≤45字","angle":"查数字来源|问因果方向|想想反例|看时间口径"}""")
+
+
+def run_rookie_court(progress=None):
+    if progress:
+        progress("gather", "豆豆教练正在出一道生活题…")
+    topic = random.choice(ROOKIE_TOPICS)
+    out = None
+    try:
+        candidate = llm.chat_json(
+            ROOKIE_COURT_SYS, f"生活场景：{topic}",
+            model=llm.MODEL_STRONG, max_tokens=1800,
+        )
+        ids = {item.get("id") for item in
+               (candidate.get("bull") or []) + (candidate.get("bear") or [])}
+        if (isinstance(candidate.get("bull"), list) and isinstance(candidate.get("bear"), list)
+                and candidate.get("flaw_id") in ids and candidate.get("flaw_explain")):
+            out = candidate
+    except Exception:
+        out = None
+    if out is None:
+        out = json.loads(_j(random.choice(_ROOKIE_FALLBACK)))
+        out["offline"] = True
+    out.update({
+        "code": "新手局",
+        "name": out.get("scene") or "生活判断题",
+        "rookie": True,
+        "disclaimer": DISCLAIMER,
+    })
+    return out
+
+
+def witness_hint(card_text):
+    card_text = str(card_text or "").strip()[:120]
+    if not card_text:
+        return {"error": "缺少论据"}
+    try:
+        out = llm.chat_json(WITNESS_SYS, "论据：" + card_text, max_tokens=600)
+        if out.get("hint"):
+            return out
+    except Exception:
+        pass
+    return {
+        "hint": "先别急着信结论：这句话的证据和结论之间，是谁替你补上了因果？",
+        "angle": "问因果方向",
+        "offline": True,
+    }
 
 
 def _normalize_answers(answers):

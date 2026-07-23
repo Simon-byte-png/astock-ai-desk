@@ -120,7 +120,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/committee":
                 return self._committee_sse(query.get("code", ""))
             if path == "/api/court":
-                return self._court_sse(query.get("code", ""))
+                return self._court_sse(query.get("code", ""), query.get("mode", ""))
             if path == "/api/explain":
                 return self._json(agents.explain(
                     query.get("term", ""), query.get("context", "")
@@ -155,6 +155,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._place_order(body)
             if path == "/api/court/verdict":
                 return self._court_verdict(body)
+            if path == "/api/court/witness":
+                return self._court_witness(body)
             if path == "/api/review":
                 return self._review()
             if path == "/api/tts":
@@ -279,12 +281,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"error": "缺少 code"}, 400)
         return self._sse(lambda progress: agents.run_committee(code, progress))
 
-    def _court_sse(self, code):
-        if not code:
+    def _court_sse(self, code, mode=""):
+        rookie = mode == "rookie"
+        if not code and not rookie:
             return self._json({"error": "缺少 code"}, 400)
 
         def worker(progress):
-            full = agents.run_court(code, progress)
+            full = (agents.run_rookie_court(progress) if rookie
+                    else agents.run_court(code, progress))
             if full.get("error"):
                 return full
             attempt_id = secrets.token_urlsafe(18)
@@ -320,6 +324,14 @@ class Handler(BaseHTTPRequestHandler):
             "flaw_type": answer["flaw_type"],
             "flaw_explain": answer["flaw_explain"],
         })
+
+    def _court_witness(self, body):
+        attempt_id = str(body.get("attempt_id") or "")
+        with Handler._court_lock:
+            known = attempt_id in Handler._court_attempts
+        if not known:
+            return self._json({"error": "本次庭审已结束或过期，证人退庭了"}, 404)
+        return self._json(agents.witness_hint(body.get("text", "")))
 
     def _place_order(self, body):
         gate = agents.gate_check(body.get("answers"))

@@ -131,6 +131,10 @@ canvas{display:block;width:100%;border-radius:8px;background:#FFFDF8}
 .verdict-title{font-size:15.5px;font-weight:800;color:var(--accent);margin-bottom:6px}
 .verdict-card.good .verdict-title{color:var(--primary)}
 .trap-chip{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:var(--accent-soft);color:#9A6B1F;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px}
+.hint{margin-top:12px;font-size:12.5px;color:var(--muted)}
+.hint a{color:var(--primary);font-weight:700;text-decoration:none;cursor:pointer}
+.witness-note{display:flex;gap:9px;align-items:flex-start;background:var(--accent-soft);border:1.5px solid #EBD3A4;border-radius:12px;padding:9px 11px;font-size:12.5px;margin-top:12px}
+.rank-chip{background:var(--primary-soft);border:1.5px solid var(--primary);color:var(--primary);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:800}
 .mascot{display:inline-block;vertical-align:middle}
 .mascot-round{border-radius:50%;background:var(--panel2);padding:4px}
 
@@ -222,12 +226,14 @@ canvas{display:block;width:100%;border-radius:8px;background:#FFFDF8}
           <span class="mascot" id="courtHeroMascots"></span>
           <div>
             <h1>牛牛 vs 熊熊，你来当裁判</h1>
-            <p>一个替公司说好话，一个专挑毛病。这些话里藏着一句漂亮话，一张一张听，把它抓出来。</p>
-            <div class="search" style="margin:0"><input id="courtCode" placeholder="输入股票代码，如 600519"><button onclick="openCourt()">开局</button></div>
+            <p>一个替它说好话，一个专挑毛病。这些话里藏着一句漂亮话，一张一张听，把它抓出来。</p>
+            <div class="row" style="margin-bottom:10px"><button onclick="openCourt('rookie')">新手局 · 生活题，不用懂股票</button><span class="muted tiny">AI 现场出题，每局都不一样</span></div>
+            <div class="search" style="margin:0"><input id="courtCode" placeholder="输入股票代码，如 600519"><button class="ghost" onclick="openCourt()">股票局</button></div>
           </div>
         </div>
       </div>
       <div class="progress" id="courtProgress"></div><div id="courtBody" style="margin-top:14px"></div>
+      <div id="trapShelf" style="margin-top:14px"></div>
     </section>
 
     <section class="page" id="page-glossary">
@@ -350,7 +356,7 @@ function formatError(err){return esc(err?.message||'暂时失败，请稍后重�
 function goPage(name){
   $$('.nav button').forEach(button=>button.classList.toggle('on',button.dataset.page===name));
   $$('.page').forEach(page=>page.classList.toggle('on',page.id===`page-${name}`));
-  if(name==='portfolio')loadPortfolio(); if(name==='glossary')renderGlossary();
+  if(name==='portfolio')loadPortfolio(); if(name==='glossary')renderGlossary(); if(name==='court')renderTrapShelf();
 }
 $$('.nav button').forEach(button=>button.onclick=()=>goPage(button.dataset.page));
 
@@ -522,10 +528,12 @@ async function submitOrder(){
 }
 
 /* ================= 牛熊裁判：一次只审一张卡 ================= */
-function openCourt(){
-  const code=$('#courtCode').value.trim()||CUR?.quote?.code;if(!code)return toast('先输入股票代码');
-  $('#courtBody').innerHTML='';$('#courtProgress').innerHTML='<span class="step on">书记员正在整理素材…</span>';
-  const es=new EventSource('/api/court?code='+encodeURIComponent(code));
+function openCourt(mode){
+  let url;
+  if(mode==='rookie'){url='/api/court?mode=rookie'}
+  else{const code=$('#courtCode').value.trim()||CUR?.quote?.code;if(!code)return toast('先输入股票代码，或来一局新手局');url='/api/court?code='+encodeURIComponent(code)}
+  $('#courtBody').innerHTML='';$('#courtProgress').innerHTML='<span class="step on">出题人正在准备…</span>';
+  const es=new EventSource(url);
   es.addEventListener('progress',e=>{const d=JSON.parse(e.data);$('#courtProgress').innerHTML=`<span class="step on">${esc(d.label)}</span>`});
   es.addEventListener('result',e=>{es.close();const d=JSON.parse(e.data);if(d.error){$('#courtBody').innerHTML=`<div class="panel empty">${esc(d.error)}</div>`;return}startCourt(d)});
   es.onerror=()=>{es.close();toast('开局连接中断，请重试')};
@@ -533,15 +541,17 @@ function openCourt(){
 function startCourt(d){
   const deck=[...(d.bull||[]).map(x=>({...x,side:'bull'})),...(d.bear||[]).map(x=>({...x,side:'bear'}))];
   for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}
-  COURT={...d,deck,idx:0,verdict:null};
+  COURT={...d,deck,idx:0,verdict:null,witnessLeft:1,lastMode:d.rookie?'rookie':undefined};
   $('#courtProgress').innerHTML='';renderCourt();
 }
 function courtScore(){return Number(localStorage.getItem('court_score')||0)}
+function courtStreak(){return Number(localStorage.getItem('praxis_streak')||0)}
+function rankTitle(s){return s>=150?'铁面判官':s>=80?'火眼金睛':s>=30?'明眼人':'实习裁判'}
 function courtHeader(){
-  const c=COURT;
+  const c=COURT,streak=courtStreak();
   const dots=c.deck.map((_,i)=>`<i class="${i<c.idx?'done':i===c.idx&&!c.verdict?'cur':''}"></i>`).join('');
   return `<div class="court-head"><div><h2 style="margin:0">${esc(c.name)} <span class="muted tiny">${esc(c.code)}</span></h2></div>
-    <div class="row"><span class="muted tiny">火眼金睛</span><span class="scoreline">${courtScore()}</span><span class="dots">${dots}</span></div></div>
+    <div class="row"><span class="rank-chip">${rankTitle(courtScore())}</span><span class="scoreline">${courtScore()}</span>${streak>1?`<span class="muted tiny">连胜 ×${streak}</span>`:''}<span class="dots">${dots}</span></div></div>
     <div class="vs-row"><span class="fighter bull">${svgBull(34)} 牛牛 · 替它说好话</span><span class="vs">你来当裁判</span><span class="fighter bear">${svgBear(34)} 熊熊 · 给它挑毛病</span></div>`;
 }
 function renderCourt(){
@@ -559,8 +569,9 @@ function renderCourt(){
     <div class="claim-card ${isBull?'bull-side':'bear-side'}">
       <div class="speaker">${isBull?svgBull(52):svgBear(52)}
         <div><div class="speaker-name ${card.side}">${isBull?'牛牛':'熊熊'}说：</div>
-        <div class="speaker-side">${isBull?'替这家公司说好话':'专给这家公司挑毛病'} · 第 ${c.idx+1} 张 / 共 ${c.deck.length} 张</div></div></div>
+        <div class="speaker-side">${isBull?(c.rookie?'替这个主意说好话':'替这家公司说好话'):(c.rookie?'专给这个主意泼冷水':'专给这家公司挑毛病')} · 第 ${c.idx+1} 张 / 共 ${c.deck.length} 张</div></div></div>
       <div class="claim">「${esc(card.text)}」</div>
+      <div id="witnessArea">${c.witnessLeft>0?`<div class="hint"><a id="witnessBtn">传唤证人</a>（中立提示，不剧透，每局 1 次）</div>`:''}</div>
     </div>
     <div class="judge-row">
       <button class="judge-btn btn-ok" id="okBtn">有道理<span class="sub">这句说得对，下一张</span></button>
@@ -568,13 +579,40 @@ function renderCourt(){
     </div>`;
   $('#okBtn').onclick=()=>{COURT.idx++;renderCourt()};
   $('#trapBtn').onclick=()=>submitVerdict(card.id);
+  const wb=$('#witnessBtn');
+  if(wb)wb.onclick=async()=>{
+    wb.textContent='证人正在回忆…';
+    try{
+      const d=COURT.preview
+        ?{hint:'先别急着信结论：这句话的证据和结论之间，是谁替你补上了因果？',angle:'问因果方向'}
+        :await api('/api/court/witness',{method:'POST',body:JSON.stringify({attempt_id:COURT.attempt_id,text:card.text})});
+      COURT.witnessLeft--;
+      $('#witnessArea').innerHTML=`<div class="witness-note">${svgDog(40)}<div><b>证人（${esc(d.angle||'中立视角')}）：</b>${esc(d.hint)}</div></div>`;
+    }catch(err){wb.textContent='传唤证人';toast(err.message)}
+  };
 }
 async function submitVerdict(choiceId){
   try{
     const d=await api('/api/court/verdict',{method:'POST',body:JSON.stringify({attempt_id:COURT.attempt_id,choice:choiceId})});
-    let score=courtScore();if(d.correct)score+=10;localStorage.setItem('court_score',score);
-    COURT.verdict={...d,choiceId};renderCourt();
+    applyVerdict(d,choiceId);
   }catch(err){toast(err.message)}
+}
+function applyVerdict(d,choiceId){
+  let streak=courtStreak(),gained=0;
+  if(d.correct){gained=10+Math.min(streak*5,20);streak+=1}else{streak=0}
+  localStorage.setItem('praxis_streak',streak);
+  localStorage.setItem('court_score',courtScore()+gained);
+  const traps=savedTraps(),t=traps[d.flaw_type]||{caught:0,missed:0};
+  if(d.correct)t.caught++;else t.missed++;
+  traps[d.flaw_type]=t;localStorage.setItem('praxis_traps',JSON.stringify(traps));
+  COURT.verdict={...d,choiceId,gained,streak};renderCourt();renderTrapShelf();
+}
+function savedTraps(){try{return JSON.parse(localStorage.getItem('praxis_traps')||'{}')}catch{return {}}}
+function renderTrapShelf(){
+  const traps=savedTraps(),keys=Object.keys(traps),el=$('#trapShelf');
+  if(!el)return;
+  el.innerHTML=keys.length?`<div class="panel"><h3>我的陷阱图鉴 <span class="muted tiny">识破过一次，生活里再遇到也认得它</span></h3>
+    <div class="row">${keys.map(k=>{const t=traps[k];return `<span class="trap-chip">${esc(k)} · 识破×${t.caught}${t.missed?` · 踩过×${t.missed}`:''}</span>`}).join('')}</div></div>`:'';
 }
 function renderVerdict(){
   const c=COURT,v=c.verdict;
@@ -588,12 +626,12 @@ function renderVerdict(){
     </div>
     <div class="verdict-card ${v.correct?'good':''}">
       <div style="display:flex;gap:12px;align-items:flex-start">${svgDog(56)}
-        <div><div class="verdict-title">${v.correct?'判对了！火眼金睛 +10':'这次被漂亮话带跑了'}</div>
+        <div><div class="verdict-title">${v.correct?`判对了！+${v.gained} 分${v.streak>1?` · 连胜 ×${v.streak}`:''}`:'这次被漂亮话带跑了，连胜清零'}</div>
         ${v.correct?'':`<p class="muted tiny" style="margin:2px 0 6px">你选的是：「${esc(picked?.text||'')}」——这张其实站得住。</p>`}
         <p style="margin:4px 0">${esc(v.flaw_explain)}</p>
-        <span class="trap-chip">陷阱卡：${esc(v.flaw_type)}</span></div></div>
-      <div class="judge-row" style="margin-top:14px"><button class="judge-btn btn-ok" onclick="openCourt()">再开一局</button>
-      <button class="judge-btn" style="background:var(--panel2);color:var(--text)" onclick="openOrder('buy')">带着判断去模拟决策</button></div>
+        <span class="trap-chip">陷阱卡${v.correct?'入手':'（这次踩过，下次认得）'}：${esc(v.flaw_type)}</span></div></div>
+      <div class="judge-row" style="margin-top:14px"><button class="judge-btn btn-ok" onclick="openCourt(COURT.lastMode)">再开一局</button>
+      ${COURT.rookie?'':`<button class="judge-btn" style="background:var(--panel2);color:var(--text)" onclick="openOrder('buy')">带着判断去模拟决策</button>`}</div>
     </div>`;
 }
 
@@ -646,18 +684,21 @@ if(location.search.includes('preview=court')){
     {id:'r2',side:'bear',text:'大客户占它收入的比重很高，人家一砍单，它就要疼。'},
     {id:'b3',side:'bull',text:'一季度收入和利润都涨得快，公司还在长个子。'},
   ];
-  COURT={name:'东山精密',code:'002384',attempt_id:'preview',deck,idx:0,verdict:null,preview:true};
+  COURT={name:'东山精密',code:'002384',attempt_id:'preview',deck,idx:0,verdict:null,preview:true,witnessLeft:1};
   submitVerdict=async(choiceId)=>{
     const d={correct:choiceId==='b2',flaw_id:'b2',flaw_type:'只看账面，不看原因',
       flaw_explain:'保险赔得了货的钱，赔不了「为什么会丢」——管理上的漏洞，不会因为理赔就消失。'};
-    let score=courtScore();if(d.correct)score+=10;localStorage.setItem('court_score',score);
-    COURT.verdict={...d,choiceId};renderCourt();
+    applyVerdict(d,choiceId);
   };
   if(location.search.includes('verdict=1')){COURT.idx=2;submitVerdict('b2')}else renderCourt();
 }
 if(location.search.includes('preview=order')){
   localStorage.setItem('praxis_disclaimer','1');$('#disclaimerModal').classList.remove('show');
   openOrder('buy','002384');
+}
+if(location.search.includes('autostart=rookie')){
+  localStorage.setItem('praxis_disclaimer','1');$('#disclaimerModal').classList.remove('show');
+  goPage('court');openCourt('rookie');
 }
 
 loadConfig();loadMovers();loadPicks();loadPortfolio();renderGlossary();
