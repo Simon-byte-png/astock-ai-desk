@@ -40,7 +40,7 @@ python3 server.py
 ```bash
 export DEEPSEEK_MODEL_FAST="deepseek-v4-flash"
 export DEEPSEEK_MODEL_STRONG="deepseek-v4-pro"
-export STEP_MODEL_BACKUP="step-3.7-flash"
+export STEP_MODEL_BACKUP="step-3.5-flash"
 export STEP_MODEL_TTS="step-tts-mini"
 export ASTOCK_DATA_DIR="/data"
 ```

@@ -18,7 +18,7 @@ STEP_KEY = os.environ.get("STEP_API_KEY", "").strip()
 # 模型名都可由 Zeabur Variables 覆盖，避免服务商升级时改代码。
 MODEL_FAST = os.environ.get("DEEPSEEK_MODEL_FAST", "deepseek-v4-flash")
 MODEL_STRONG = os.environ.get("DEEPSEEK_MODEL_STRONG", "deepseek-v4-pro")
-MODEL_BACKUP = os.environ.get("STEP_MODEL_BACKUP", "step-3.7-flash")
+MODEL_BACKUP = os.environ.get("STEP_MODEL_BACKUP", "step-3.5-flash")
 MODEL_TTS = os.environ.get("STEP_MODEL_TTS", "step-tts-mini")
 
 PROVIDERS = {
