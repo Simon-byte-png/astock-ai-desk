@@ -18,6 +18,15 @@
 cd astock-desk
 python3 server.py        # 读 $HOST:$PORT，默认 0.0.0.0:8000
 ```
+
+行情和回测不需要模型令牌。要使用 AI 委员会，请只通过环境变量配置令牌，不要写进源码：
+
+```bash
+export DESK_LLM_TOKEN="你的令牌"
+python3 server.py
+```
+
+如果仓库历史中曾经提交过真实令牌，应先去服务商后台作废并轮换，再清理 Git 历史。
 平台预览已配好 `.zaocode/preview.json`，右侧预览框直接可用。
 
 ## 架构

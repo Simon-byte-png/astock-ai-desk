@@ -11,11 +11,10 @@ _CTX = ssl.create_default_context()
 _CTX.check_hostname = False
 _CTX.verify_mode = ssl.CERT_NONE
 
-# 默认使用用户提供的 MiMo v2.5（Anthropic 兼容）
+# 默认使用 MiMo v2.5 的 Anthropic 兼容接口；令牌只允许从环境变量读取。
 BASE = (os.environ.get("DESK_LLM_BASE")
         or "https://token-plan-cn.xiaomimimo.com/anthropic").rstrip("/")
-TOKEN = (os.environ.get("DESK_LLM_TOKEN")
-         or "tp-cwxhnnn1oh0fzpm0h8uk8mey7342gfalfj3qev0p5nmpnbhv")
+TOKEN = os.environ.get("DESK_LLM_TOKEN", "").strip()
 
 MODEL_FAST = os.environ.get("DESK_MODEL_FAST", "mimo-v2.5")
 MODEL_STRONG = os.environ.get("DESK_MODEL_STRONG", "mimo-v2.5")
@@ -23,6 +22,8 @@ MODEL_STRONG = os.environ.get("DESK_MODEL_STRONG", "mimo-v2.5")
 
 def chat(system, user, model=None, max_tokens=1500, temperature=None, retries=3):
     """流式(SSE)调用：边生成边收，避免代理对长响应体的截断。"""
+    if not TOKEN:
+        raise RuntimeError("未配置 DESK_LLM_TOKEN；行情与回测仍可使用，AI 委员会暂不可用")
     payload = {
         "model": model or MODEL_FAST,
         "max_tokens": max_tokens,
