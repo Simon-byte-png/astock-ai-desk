@@ -360,7 +360,14 @@ class Handler(BaseHTTPRequestHandler):
 
 def _llm_host():
     from lib import llm
-    return llm.DEEPSEEK_BASE.split("//")[-1].split("/")[0] + " / " + llm.MODEL_FAST
+    status = llm.provider_status()
+    primary = status["primary"]
+    if primary["configured"]:
+        return primary["host"] + " / " + primary["fast_model"]
+    backup = status["backup"]
+    if backup["configured"]:
+        return backup["host"] + " / " + backup["model"] + " (backup)"
+    return "not configured"
 
 
 def main():
