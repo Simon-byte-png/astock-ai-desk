@@ -228,6 +228,7 @@ async function api(url,options={}){
 function toast(message){const el=$('#toast');el.textContent=message;el.style.display='block';setTimeout(()=>el.style.display='none',2600)}
 function money(v){return Number(v||0).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function pctClass(v){return Number(v)>0?'up':Number(v)<0?'down':''}
+function localTime(value){return new Intl.DateTimeFormat('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value)).replaceAll('/','-')}
 function stat(k,v,cls=''){return `<div class="metric"><div class="k">${esc(k)}</div><div class="v ${cls}">${esc(v)}</div></div>`}
 function formatError(err){return esc(err?.message||'暂时失败，请稍后重试')}
 
@@ -376,7 +377,7 @@ async function loadPortfolio(){
       <td class="${pctClass(x.pnl)}">${x.pnl>=0?'+':''}${money(x.pnl)}<br><span class="tiny">${x.pnl_pct>=0?'+':''}${esc(x.pnl_pct)}%</span></td>
       <td><button class="ghost tiny" data-sell="${esc(x.code)}" data-max="${esc(x.qty)}">模拟卖出</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">还没有持仓。第一次下单前，先认真写完灵魂三问。</div>';
     $('#decisionLog').innerHTML=p.decisions.length?`<table><thead><tr><th>时间</th><th>公司</th><th>动作</th><th>数量</th><th>价格</th><th>情绪</th></tr></thead><tbody>${p.decisions.slice(0,12).map(x=>`
-      <tr><td>${esc(x.created_at.replace('T',' ').slice(0,16))}</td><td>${esc(x.name||x.code)}</td><td>${x.side==='buy'?'模拟买入':'模拟卖出'}</td><td>${esc(x.qty)}</td><td>${esc(x.price)}</td><td>${esc(x.emotion)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">决策日志还是空的</div>';
+      <tr><td>${esc(localTime(x.created_at))}</td><td>${esc(x.name||x.code)}</td><td>${x.side==='buy'?'模拟买入':'模拟卖出'}</td><td>${esc(x.qty)}</td><td>${esc(x.price)}</td><td>${esc(x.emotion)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">决策日志还是空的</div>';
   }catch(err){$('#positions').innerHTML=`<div class="empty">${formatError(err)}</div>`}
 }
 $('#positions').onclick=e=>{const b=e.target.closest('[data-sell]');if(b){openOrder('sell',b.dataset.sell,Number(b.dataset.max))}};
