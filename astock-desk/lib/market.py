@@ -4,7 +4,7 @@ A股数据层：纯 urllib，无第三方依赖。
 数据源：腾讯(实时报价) / 东方财富(K线、基本面、资金流、新闻)。
 所有网络函数都做了容错，失败返回 None 或空结构，不抛异常打断上层。
 """
-import urllib.request, urllib.parse, json, ssl, re, time, datetime
+import urllib.request, urllib.parse, json, ssl, re, time, datetime, os
 
 
 def _beijing_now():
@@ -16,6 +16,29 @@ _CTX.verify_mode = ssl.CERT_NONE
 _UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
 _cache = {}
+_SNAPSHOT = None
+
+
+def _snapshot(section, code=None):
+    """线上行情全挂时读取仓库快照，并明确标成课堂模式。"""
+    global _SNAPSHOT
+    if _SNAPSHOT is None:
+        path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "snapshot.json")
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                _SNAPSHOT = json.load(handle)
+        except Exception:
+            _SNAPSHOT = {}
+    value = (_SNAPSHOT or {}).get(section)
+    if code is not None and isinstance(value, dict):
+        value = value.get(normalize(code))
+    if isinstance(value, dict):
+        value = dict(value)
+        value["classroom_mode"] = True
+        value["snapshot_as_of"] = (_SNAPSHOT or {}).get("generated_at", "")
+    return value
+
+
 def _get(url, headers=None, timeout=8, ttl=0, encoding="utf-8", retries=3):
     key = url
     now = time.time()
@@ -68,7 +91,7 @@ def quote(code):
     tc = tencent_code(code)
     txt = _get(f"https://qt.gtimg.cn/q={tc}", headers={"Referer": "https://gu.qq.com"}, ttl=2, encoding="gbk")
     if not txt or "=" not in txt:
-        return None
+        return _snapshot("quotes", code)
     try:
         payload = txt.split('="', 1)[1].rstrip('";\n')
         f = payload.split("~")
@@ -101,7 +124,7 @@ def quote(code):
             **_freshness(f[30] if len(f) > 30 else ""),
         }
     except Exception:
-        return None
+        return _snapshot("quotes", code)
 
 
 def _freshness(raw_ts):
@@ -161,6 +184,14 @@ def data_status(quote, kline_list):
         except Exception:
             pass
     q = quote or {}
+    if q.get("classroom_mode"):
+        st.update({
+            "stale": True,
+            "classroom_mode": True,
+            "reason": "实时数据源暂不可用，当前为课堂模式（快照数据），不可用于真实交易判断",
+            "as_of": q.get("snapshot_as_of", ""),
+        })
+        return st
     if not st["stale"] and (q.get("volume_lot", 0) == 0 and q.get("turnover", 0) == 0
                             and st["session"] in ("morning", "afternoon")):
         st["stale"] = True
@@ -224,12 +255,21 @@ def _kline_em(code, period, limit, fq=1):
 def kline(code, period="day", limit=250, fq=1):
     """日/分钟K线。新浪(不复权)优先、东财(前复权)兜底；周月线仅东财。"""
     if period in ("week", "month"):
-        return _kline_em(code, period, limit, fq)
+        items = _kline_em(code, period, limit, fq)
+        if items:
+            return items
+        snapshot = _snapshot("klines", code)
+        return snapshot[-limit:] if isinstance(snapshot, list) else []
     ks = _kline_sina(code, period, limit)
     if len(ks) >= min(limit, 20):
         return ks
     em = _kline_em(code, period, limit, fq)
-    return em if em else ks
+    if em:
+        return em
+    if ks:
+        return ks
+    snapshot = _snapshot("klines", code)
+    return snapshot[-limit:] if isinstance(snapshot, list) else []
 
 # ---------- 主力资金流（东财，当日 + 简况） ----------
 def money_flow(code):
@@ -282,7 +322,10 @@ def fundamentals(code):
             })
     except Exception:
         pass
-    return rows
+    if rows:
+        return rows
+    snapshot = _snapshot("fundamentals", code)
+    return snapshot if isinstance(snapshot, list) else []
 
 def _yi(v):
     try: return round(float(v) / 1e8, 2)
@@ -448,7 +491,10 @@ def market_movers(sort="gainers", n=20, exclude_st=True, exclude_limit=False):
                 break
         if len(out) >= n:
             break
-    return out
+    if out:
+        return out
+    snapshot = _snapshot("movers")
+    return (snapshot.get(sort) or [])[:n] if isinstance(snapshot, dict) else []
 
 def _f(v):
     try:
@@ -471,7 +517,10 @@ def index_snapshot():
                 res.append({"name": f[1], "price": float(f[3]), "pct": float(f[32])})
             except Exception:
                 pass
-    return res
+    if res:
+        return res
+    snapshot = _snapshot("indices")
+    return snapshot if isinstance(snapshot, list) else []
 
 
 if __name__ == "__main__":
