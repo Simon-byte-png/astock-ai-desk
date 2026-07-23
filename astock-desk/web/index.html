@@ -4,127 +4,172 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>躬行 Praxis · 不荐股，教判断</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Ccircle cx='60' cy='64' r='38' fill='%23E9B45C' stroke='%235B4636' stroke-width='6'/%3E%3Cpath d='M28 40 Q14 44 16 66 Q18 84 30 86 Q24 64 34 46 Z' fill='%23C98F3F' stroke='%235B4636' stroke-width='5'/%3E%3Cpath d='M92 40 Q106 44 104 66 Q102 84 90 86 Q96 64 86 46 Z' fill='%23C98F3F' stroke='%235B4636' stroke-width='5'/%3E%3Cellipse cx='60' cy='82' rx='21' ry='14' fill='%23F8E8CB'/%3E%3Cellipse cx='60' cy='76' rx='6.5' ry='5' fill='%234A3B2E'/%3E%3Ccircle cx='46' cy='60' r='4.6' fill='%233E3226'/%3E%3Ccircle cx='74' cy='60' r='4.6' fill='%233E3226'/%3E%3C/svg%3E">
 <style>
 :root{
-  --bg:#090d14;--panel:#121925;--panel2:#182231;--line:#263247;
-  --text:#ecf2fb;--muted:#93a1b5;--blue:#5b8cff;--cyan:#2dd4bf;
-  --red:#f05a67;--green:#39c987;--amber:#f5b942;--purple:#a78bfa;
+  --bg:#FBF6EC;--panel:#FFFFFF;--panel2:#F6EEDF;--line:#E6D9C4;--outline:#5B4636;
+  --text:#3E3226;--muted:#8C7F6D;--primary:#2F6F5E;--primary-soft:#E7F0ED;
+  --accent:#E8A33D;--accent-soft:#FBF1DF;--danger:#C9504A;--danger-soft:#F9E9E7;
+  --bull:#E07B39;--bull-soft:#FAEDE2;--bear:#5C7391;--bear-soft:#E9EDF3;
+  --up:#D65454;--down:#3E9268;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;background:radial-gradient(circle at 10% -10%,#152441 0,transparent 28%),var(--bg);
-  color:var(--text);font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+body{margin:0;background:radial-gradient(circle at 12% -6%,#FDF3DC 0,transparent 34%),var(--bg);
+  color:var(--text);font:14.5px/1.65 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
 button,input,textarea,select{font:inherit}
-button{border:0;border-radius:10px;padding:10px 16px;background:var(--blue);color:white;font-weight:700;cursor:pointer}
-button:hover{filter:brightness(1.12)}
+button{border:0;border-radius:14px;padding:10px 16px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}
+button:hover{filter:brightness(1.06)}
 button:disabled{opacity:.45;cursor:not-allowed}
-button.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--text)}
-button.danger{background:#542631;color:#ffc7cc}
+button.ghost{background:var(--panel);border:1.5px solid var(--line);color:var(--text)}
+button.danger{background:var(--danger-soft);color:var(--danger)}
 .app{max-width:1240px;margin:auto;padding:18px}
 header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.brand{font-size:21px;font-weight:900;letter-spacing:.3px}
-.brand small{display:block;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px}
-.badge{border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:3px 9px;font-size:11px}
-.ticker{margin-left:auto;display:flex;gap:15px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
-.notice{margin:14px 0;background:#241d12;border:1px solid #4a391d;color:#f2cc83;padding:9px 13px;border-radius:10px;font-size:12px}
-.nav{display:flex;gap:7px;overflow:auto;padding:4px 0 14px;position:sticky;top:0;z-index:20;
-  background:linear-gradient(var(--bg) 70%,transparent)}
-.nav button{white-space:nowrap;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
-.nav button.on{background:var(--blue);color:white;border-color:var(--blue)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .mascot{flex:none}
+.brand-name{font-family:"Kaiti SC","STKaiti","KaiTi",serif;font-size:24px;font-weight:900;letter-spacing:1px;color:var(--primary)}
+.brand small{display:block;font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:1px;font-family:-apple-system,"PingFang SC",sans-serif}
+.badge{border:1.5px solid var(--line);background:var(--panel);color:var(--muted);border-radius:20px;padding:3px 10px;font-size:11px}
+.nav{display:flex;gap:8px;overflow:auto;padding:12px 0 14px;position:sticky;top:0;z-index:20;
+  background:linear-gradient(var(--bg) 72%,transparent)}
+.nav button{white-space:nowrap;background:var(--panel);border:1.5px solid var(--line);color:var(--muted);border-radius:999px}
+.nav button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
 .page{display:none}.page.on{display:block}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
 .grid.asym{grid-template-columns:1.12fr .88fr}
-.panel{background:rgba(18,25,37,.94);border:1px solid var(--line);border-radius:16px;padding:16px}
+.panel{background:var(--panel);border:1.5px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 2px 10px rgba(91,70,54,.05)}
 .panel h2,.panel h3{margin:0 0 11px}.panel h2{font-size:17px}.panel h3{font-size:13px;color:var(--muted)}
-.hero{padding:24px;background:linear-gradient(135deg,#17243a,#111822 55%,#132629)}
-.hero h1{margin:0;font-size:26px}.hero p{color:var(--muted);margin:8px 0 16px}
+.hero{padding:24px;background:linear-gradient(135deg,#FFF9EC,#FBEFD9 70%,#F4E9D2)}
+.hero h1{margin:0;font-size:25px}.hero p{color:var(--muted);margin:8px 0 16px}
+.hero-flex{display:flex;gap:18px;align-items:center}
+.hero-flex .mascot{flex:none}
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.metric{background:var(--panel2);border-radius:12px;padding:11px}
+.metric{background:var(--panel2);border-radius:14px;padding:11px}
 .metric .k{font-size:11px;color:var(--muted)}.metric .v{font-size:18px;font-weight:800;margin-top:2px}
-.up{color:var(--red)}.down{color:var(--green)}.muted{color:var(--muted)}.tiny{font-size:11px}
+.up{color:var(--up)}.down{color:var(--down)}.muted{color:var(--muted)}.tiny{font-size:11px}
 .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.row.space{justify-content:space-between}
 .search{position:relative;display:flex;gap:8px;margin-bottom:10px}
-input,textarea,select{background:#0e1520;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;outline:none}
-input:focus,textarea:focus,select:focus{border-color:var(--blue)}
+input,textarea,select{background:#FFFDF8;border:1.5px solid var(--line);color:var(--text);border-radius:12px;padding:10px 12px;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--primary)}
 .search input{flex:1;min-width:120px}
-.suggest{position:absolute;top:46px;left:0;right:90px;background:var(--panel2);border:1px solid var(--line);
-  border-radius:10px;z-index:30;overflow:hidden;display:none;box-shadow:0 12px 40px #0008}
+.suggest{position:absolute;top:46px;left:0;right:90px;background:var(--panel);border:1.5px solid var(--line);
+  border-radius:12px;z-index:30;overflow:hidden;display:none;box-shadow:0 12px 32px rgba(91,70,54,.18)}
 .suggest div{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer}
-.suggest div:hover{background:#202c3e}
+.suggest div:hover{background:var(--panel2)}
 .quick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:13px}
-.quick span,.chip{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:5px 10px;
-  color:#cbd5e4;font-size:12px;cursor:pointer}
-.quick span:hover,.chip:hover{border-color:var(--cyan)}
+.quick span,.chip{background:var(--panel);border:1.5px solid var(--line);border-radius:20px;padding:5px 11px;
+  color:var(--text);font-size:12px;cursor:pointer}
+.quick span:hover,.chip:hover{border-color:var(--primary);color:var(--primary)}
 .empty{text-align:center;color:var(--muted);padding:30px 12px}
-.spin{width:15px;height:15px;display:inline-block;border:2px solid var(--line);border-top-color:var(--cyan);
+.notice{margin:10px 0;background:var(--accent-soft);border:1.5px solid #EBD3A4;color:#8A6420;padding:10px 13px;border-radius:12px;font-size:12.5px}
+.spin{width:15px;height:15px;display:inline-block;border:2px solid var(--line);border-top-color:var(--primary);
   border-radius:50%;animation:spin .8s linear infinite;vertical-align:-3px}
 @keyframes spin{to{transform:rotate(360deg)}}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
-th,td{padding:8px 7px;border-bottom:1px solid #202a3a;text-align:right}
+th,td{padding:8px 7px;border-bottom:1px solid var(--line);text-align:right}
 th{font-size:11px;color:var(--muted);font-weight:600}th:first-child,td:first-child{text-align:left}
 tbody tr.click{cursor:pointer}tbody tr.click:hover{background:var(--panel2)}
 .quote-name{font-size:20px;font-weight:850}.quote-price{font-size:31px;font-weight:900;margin:4px 0}
-canvas{display:block;width:100%;border-radius:8px}
+canvas{display:block;width:100%;border-radius:8px;background:#FFFDF8}
 .scan-tabs,.strategy-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
-.scan-tabs button,.strategy-tabs button{font-size:12px;padding:5px 10px;background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
-.scan-tabs button.on,.strategy-tabs button.on{background:var(--blue);color:white}
-.pick{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px;cursor:pointer}
-.pick:hover{border-color:var(--cyan)}.pick-title{font-weight:800}.angle{color:var(--cyan);font-size:11px;margin-left:6px}
+.scan-tabs button,.strategy-tabs button{font-size:12px;padding:5px 11px;background:var(--panel2);color:var(--muted);border:1.5px solid var(--line);border-radius:999px}
+.scan-tabs button.on,.strategy-tabs button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.pick{background:var(--panel2);border:1.5px solid var(--line);border-radius:14px;padding:11px;margin-bottom:8px;cursor:pointer}
+.pick:hover{border-color:var(--primary)}.pick-title{font-weight:800}.angle{color:var(--primary);font-size:11px;margin-left:6px}
 .agents{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.agent{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--line);border-radius:14px;padding:14px}
-.role{display:flex;align-items:center;gap:7px;font-weight:800}.stance{margin-left:auto;font-size:11px;padding:2px 8px;border-radius:15px;background:var(--panel2)}
+.agent{background:var(--panel);border:1.5px solid var(--line);border-top:4px solid var(--line);border-radius:16px;padding:14px}
+.role{display:flex;align-items:center;gap:8px;font-weight:800}
+.role .dot-ico{width:10px;height:10px;border-radius:50%;background:var(--accent);flex:none}
+.stance{margin-left:auto;font-size:11px;padding:2px 9px;border-radius:15px;background:var(--panel2)}
 .agent ul,.risk-box ul{padding-left:18px;margin:7px 0}.agent li,.risk-box li{font-size:12px;margin:3px 0}
-.research{margin-top:13px;border:1px solid #31486d;border-radius:16px;padding:18px;background:linear-gradient(180deg,#162137,#111925)}
-.question{font-size:19px;font-weight:850;background:#202d43;border-left:4px solid var(--cyan);padding:14px;border-radius:10px;margin:12px 0}
-.risk-box{background:#211b12;border:1px solid #49391e;border-radius:12px;padding:13px;margin-top:12px}
-.progress{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.step{color:var(--muted);font-size:12px}.step.on{color:var(--cyan)}.step.done{color:var(--green)}
-.court{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.side{border-radius:15px;padding:15px}.bull{background:#29171b;border:1px solid #5c2931}.bear{background:#10261e;border:1px solid #22543e}
-.argument{display:block;width:100%;text-align:left;margin:8px 0;background:#111923;border:1px solid var(--line);font-weight:500}
-.argument.selected{border-color:var(--amber);box-shadow:0 0 0 2px #f5b94233}
-.argument.answer{border-color:var(--red)}
-.scoreline{font-size:26px;font-weight:900;color:var(--amber)}
+.research{margin-top:13px;border:1.5px solid #E2CFA8;border-radius:18px;padding:18px;background:linear-gradient(180deg,#FDF9F0,#FBF3E2)}
+.question{font-size:18px;font-weight:850;background:#FFF6E4;border-left:4px solid var(--accent);padding:14px;border-radius:12px;margin:12px 0}
+.risk-box{background:#FBF1DF;border:1.5px solid #EBD3A4;border-radius:14px;padding:13px;margin-top:12px}
+.progress{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.step{color:var(--muted);font-size:12px}.step.on{color:var(--primary)}.step.done{color:var(--down)}
 .glossary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.term-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}.term-card h3{color:var(--cyan)}
-.letter{white-space:pre-wrap;font-size:15px;line-height:1.9;color:#dce5f2;background:#0e1520;border-radius:12px;padding:17px}
-.modal{position:fixed;inset:0;background:#03060bd9;display:none;align-items:center;justify-content:center;padding:18px;z-index:100}
-.modal.show{display:flex}.modal-card{width:min(620px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px}
+.term-card{background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:14px}.term-card h3{color:var(--primary)}
+.letter{white-space:pre-wrap;font-size:15px;line-height:1.95;color:var(--text);background:#FFFBF2;border:1.5px dashed #E2CFA8;border-radius:14px;padding:18px}
+.modal{position:fixed;inset:0;background:rgba(62,50,38,.5);display:none;align-items:center;justify-content:center;padding:18px;z-index:100}
+.modal.show{display:flex}.modal-card{width:min(620px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1.5px solid var(--line);border-radius:20px;padding:22px}
 .modal-card h2{margin-top:0}.close{float:right;background:transparent;padding:0;color:var(--muted);font-size:25px}
 .field{margin:12px 0}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.field textarea{width:100%;min-height:78px;resize:vertical}
-.emotion{display:flex;gap:8px;flex-wrap:wrap}.emotion button{font-size:20px;background:var(--panel2);border:1px solid var(--line)}.emotion button.on{border-color:var(--amber)}
-.disclaimer-check{display:flex;gap:10px;align-items:flex-start;background:var(--panel2);padding:12px;border-radius:10px}
-.toast{position:fixed;right:18px;bottom:18px;background:#1f2937;border:1px solid var(--line);padding:11px 15px;border-radius:10px;z-index:120;display:none}
+.emotion{display:flex;gap:8px;flex-wrap:wrap}
+.emotion button{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:7px 9px 4px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.emotion button span{font-size:10.5px;color:var(--muted);font-weight:600}
+.emotion button.on{border-color:var(--accent);background:var(--accent-soft)}
+.disclaimer-check{display:flex;gap:10px;align-items:flex-start;background:var(--panel2);padding:12px;border-radius:12px}
+.toast{position:fixed;right:18px;bottom:18px;background:var(--text);color:#FFF8EC;border:0;padding:11px 15px;border-radius:12px;z-index:120;display:none}
+.footer-line{text-align:center;color:#B7AA92;font-size:11.5px;padding:22px 0 8px}
+
+/* ---------- 牛熊裁判（卡牌） ---------- */
+.court-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.scoreline{font-size:24px;font-weight:900;color:var(--accent)}
+.dots{display:flex;gap:5px;flex-wrap:wrap}
+.dots i{width:18px;height:6px;border-radius:3px;background:#E8DFCE}
+.dots i.done{background:var(--accent)}.dots i.cur{background:var(--primary)}
+.vs-row{display:flex;justify-content:center;align-items:center;gap:14px;margin:10px 0 14px}
+.fighter{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;padding:5px 13px 5px 7px;border-radius:999px}
+.fighter.bull{background:var(--bull-soft);color:var(--bull)}
+.fighter.bear{background:var(--bear-soft);color:var(--bear)}
+.vs{font-size:12px;color:var(--muted)}
+.claim-card{max-width:640px;margin:0 auto;background:var(--panel);border:2.5px solid var(--outline);
+  border-radius:24px 18px 26px 16px;padding:22px 22px 20px;box-shadow:4px 5px 0 rgba(91,70,54,.14)}
+.claim-card.bull-side{border-top:6px solid var(--bull)}
+.claim-card.bear-side{border-top:6px solid var(--bear)}
+.speaker{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+.speaker-name{font-size:14.5px;font-weight:800}
+.speaker-name.bull{color:var(--bull)}.speaker-name.bear{color:var(--bear)}
+.speaker-side{font-size:12px;color:var(--muted)}
+.claim{font-size:19px;line-height:1.7;font-weight:550}
+.judge-row{max-width:640px;margin:16px auto 0;display:flex;gap:12px}
+.judge-btn{flex:1;border-radius:16px;padding:15px 0 12px;font-size:16px;font-weight:800;border:2px solid transparent}
+.judge-btn .sub{display:block;font-size:11px;font-weight:500;margin-top:2px;opacity:.75}
+.btn-ok{background:var(--primary-soft);color:var(--primary)}
+.btn-trap{background:var(--danger-soft);color:var(--danger)}
+.verdict-card{max-width:640px;margin:16px auto 0;background:var(--panel);border-radius:18px;border:1.5px solid var(--line);
+  border-left:5px solid var(--accent);padding:16px 18px;box-shadow:0 2px 10px rgba(91,70,54,.06)}
+.verdict-title{font-size:15.5px;font-weight:800;color:var(--accent);margin-bottom:6px}
+.verdict-card.good .verdict-title{color:var(--primary)}
+.trap-chip{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:var(--accent-soft);color:#9A6B1F;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px}
+.mascot{display:inline-block;vertical-align:middle}
+.mascot-round{border-radius:50%;background:var(--panel2);padding:4px}
+
 @media(max-width:850px){
-  .grid,.grid.three,.grid.asym,.court{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}
-  .agents,.glossary{grid-template-columns:1fr}.ticker{margin-left:0;width:100%}.app{padding:12px}.hero{padding:18px}
+  .grid,.grid.asym{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}
+  .agents,.glossary{grid-template-columns:1fr}.app{padding:12px}.hero{padding:18px}
+  .hero-flex{flex-direction:column;align-items:flex-start}
+  .claim{font-size:17px}
 }
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <div class="brand">🧭 躬行 Praxis<small>不荐股，教判断</small></div>
+    <div class="brand"><span class="mascot" id="brandMascot"></span>
+      <div><span class="brand-name">躬行 Praxis</span><small>不荐股，教判断</small></div>
+    </div>
     <span class="badge">模拟决策</span><span class="badge">批判性思维</span>
-    <span class="badge" id="llmBadge">AI 配置检查中</span>
-    <div class="ticker" id="ticker"></div>
+    <span class="badge" id="llmBadge">AI 教练准备中</span>
   </header>
-  <div class="notice">这是金融学习工具，不是投资顾问。所有下单均为 10 万元虚拟资金的模拟记录；不要把模型输出直接用于真实交易。</div>
   <nav class="nav">
-    <button class="on" data-page="portfolio">🏘️ 我的模拟盘</button>
-    <button data-page="committee">🏛️ 投研委员会</button>
-    <button data-page="court">⚖️ 多空法庭</button>
-    <button data-page="glossary">📖 概念图鉴</button>
-    <button data-page="review">✉️ 复盘信</button>
+    <button class="on" data-page="portfolio">模拟盘</button>
+    <button data-page="committee">投研委员会</button>
+    <button data-page="court">牛熊裁判</button>
+    <button data-page="glossary">概念图鉴</button>
+    <button data-page="review">复盘信</button>
   </nav>
 
   <main>
     <section class="page on" id="page-portfolio">
       <div class="panel hero">
-        <h1>先写清为什么，再按下模拟买入</h1>
-        <p>价格涨跌只是结果。这里记录你当时的证据、反证、纪律和情绪，复盘时用你自己的话教育你。</p>
-        <div class="row"><button onclick="openOrder('buy')">开始一次模拟决策</button><button class="ghost" onclick="goPage('committee')">先去研究公司</button></div>
+        <div class="hero-flex">
+          <span class="mascot" id="heroDog"></span>
+          <div>
+            <h1>先写清为什么，再按下模拟买入</h1>
+            <p>价格涨跌只是结果。这里记录你当时的证据、反证、纪律和情绪，复盘时用你自己的话教育你。</p>
+            <div class="row"><button onclick="openOrder('buy')">开始一次模拟决策</button><button class="ghost" onclick="goPage('committee')">先去研究公司</button></div>
+          </div>
+        </div>
       </div>
       <div class="metrics" id="portfolioMetrics" style="margin:14px 0"></div>
       <div class="panel">
@@ -144,11 +189,11 @@ canvas{display:block;width:100%;border-radius:8px}
       <div class="quick" id="quick"></div>
       <div class="grid asym">
         <div class="panel">
-          <div class="row space"><h2>📡 实时市场扫描</h2><span class="muted tiny" id="scanMeta"></span></div>
+          <div class="row space"><h2>实时市场扫描</h2><span class="muted tiny" id="scanMeta"></span></div>
           <div class="scan-tabs" id="scanTabs"></div><div id="movers"><div class="empty">加载榜单…</div></div>
         </div>
         <div class="panel">
-          <div class="row space"><h2>🔎 今日研究线索</h2><button class="ghost" onclick="loadPicks(true)">刷新</button></div>
+          <div class="row space"><h2>今日研究线索</h2><button class="ghost" onclick="loadPicks(true)">刷新</button></div>
           <div class="muted tiny" id="pickNote"></div><div id="picks"><div class="empty">AI 正在寻找值得核验的线索…</div></div>
         </div>
       </div>
@@ -162,7 +207,7 @@ canvas{display:block;width:100%;border-radius:8px}
       </div>
       <div class="progress" id="committeeProgress"></div><div id="committeeResult"></div>
       <div class="panel" id="backtestPanel" style="display:none;margin-top:14px">
-        <h2>🪞 策略照妖镜</h2>
+        <h2>策略照妖镜</h2>
         <p class="muted">在相信任何技术信号之前，先看它历史上真实的赢面和最大回撤。</p>
         <div class="strategy-tabs" id="strategyTabs">
           <button class="on" data-s="ma">均线金叉</button><button data-s="macd">MACD</button><button data-s="rsi">RSI 超买超卖</button>
@@ -173,9 +218,14 @@ canvas{display:block;width:100%;border-radius:8px}
 
     <section class="page" id="page-court">
       <div class="panel hero">
-        <h1>多空法庭：别急着站队，先抓逻辑漏洞</h1>
-        <p>红蓝双方各有五条论据，其中一条故意埋了错。你来当法官，选完才揭晓答案。</p>
-        <div class="search" style="margin:0"><input id="courtCode" placeholder="输入股票代码，如 600519"><button onclick="openCourt()">开庭</button></div>
+        <div class="hero-flex">
+          <span class="mascot" id="courtHeroMascots"></span>
+          <div>
+            <h1>牛牛 vs 熊熊，你来当裁判</h1>
+            <p>一个替公司说好话，一个专挑毛病。这些话里藏着一句漂亮话，一张一张听，把它抓出来。</p>
+            <div class="search" style="margin:0"><input id="courtCode" placeholder="输入股票代码，如 600519"><button onclick="openCourt()">开局</button></div>
+          </div>
+        </div>
       </div>
       <div class="progress" id="courtProgress"></div><div id="courtBody" style="margin-top:14px"></div>
     </section>
@@ -190,13 +240,19 @@ canvas{display:block;width:100%;border-radius:8px}
 
     <section class="page" id="page-review">
       <div class="panel hero">
-        <h1>复盘不是问“赚没赚”，而是问“当时想对了吗”</h1>
-        <p>AI 会引用你在灵魂三问里写下的原话，找出追涨、锚定、确认偏误等认知习惯。</p>
-        <button id="reviewBtn" onclick="generateReview()">生成我的复盘信</button>
+        <div class="hero-flex">
+          <span class="mascot" id="reviewDog"></span>
+          <div>
+            <h1>复盘不是问“赚没赚”，而是问“当时想对了吗”</h1>
+            <p>豆豆教练会引用你在灵魂三问里写下的原话，找出追涨、锚定、确认偏误等认知习惯。</p>
+            <button id="reviewBtn" onclick="generateReview()">生成我的复盘信</button>
+          </div>
+        </div>
       </div>
       <div id="reviewBody" style="margin-top:14px"></div>
     </section>
   </main>
+  <div class="footer-line">模拟资金 · 金融学习工具 · 不构成投资建议</div>
 </div>
 
 <div class="modal" id="modal"><div class="modal-card" id="modalCard"></div></div>
@@ -213,10 +269,69 @@ canvas{display:block;width:100%;border-radius:8px}
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let CUR=null, LAST_RESEARCH=null, CONFIG=null, PORTFOLIO=null, ORDER_EMOTION='🙂', COURT=null;
+let CUR=null, LAST_RESEARCH=null, CONFIG=null, PORTFOLIO=null, ORDER_EMOTION='平常', COURT=null;
 const QUICK=[['600519','贵州茅台'],['300750','宁德时代'],['000858','五粮液'],['601318','中国平安'],['600036','招商银行']];
 const MOVER_TABS=[['gainers','涨幅榜'],['amount','成交额榜'],['turnover','换手活跃'],['decliners','跌幅榜']];
 let moverType='gainers';
+
+/* ================= 原创漫画角色（手绘绘本风 SVG，无 emoji） ================= */
+function svgBull(s=64){return `<svg class="mascot" viewBox="0 0 120 120" width="${s}" height="${s}" aria-label="牛牛">
+<g stroke="#5B4636" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+<path d="M27 42 Q13 36 13 20 Q29 22 36 34 Z" fill="#F1E3C9"/>
+<path d="M93 42 Q107 36 107 20 Q91 22 84 34 Z" fill="#F1E3C9"/>
+<ellipse cx="19" cy="56" rx="11" ry="7" fill="#E8935A" transform="rotate(-22 19 56)"/>
+<ellipse cx="101" cy="56" rx="11" ry="7" fill="#E8935A" transform="rotate(22 101 56)"/>
+<ellipse cx="60" cy="66" rx="40" ry="36" fill="#E8935A"/>
+<path d="M45 33 Q52 24 60 30 Q67 23 75 31 Q68 37 60 35 Q52 39 45 33 Z" fill="#C9743D"/>
+<ellipse cx="60" cy="83" rx="22" ry="14" fill="#F6D7B8"/>
+</g>
+<circle cx="52" cy="83" r="2.6" fill="#5B4636"/><circle cx="68" cy="83" r="2.6" fill="#5B4636"/>
+<path d="M54 91 Q60 95 66 91" stroke="#5B4636" stroke-width="3" fill="none" stroke-linecap="round"/>
+<circle cx="45" cy="62" r="4.6" fill="#3E3226"/><circle cx="46.6" cy="60.4" r="1.5" fill="#fff"/>
+<circle cx="75" cy="62" r="4.6" fill="#3E3226"/><circle cx="76.6" cy="60.4" r="1.5" fill="#fff"/>
+<ellipse cx="37" cy="72" rx="6" ry="3.6" fill="#F2A9A0" opacity=".7"/>
+<ellipse cx="83" cy="72" rx="6" ry="3.6" fill="#F2A9A0" opacity=".7"/></svg>`}
+function svgBear(s=64){return `<svg class="mascot" viewBox="0 0 120 120" width="${s}" height="${s}" aria-label="熊熊">
+<g stroke="#5B4636" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="28" cy="32" r="12" fill="#8FA3B8"/><circle cx="28" cy="32" r="5.5" fill="#EAEFF4" stroke-width="0"/>
+<circle cx="92" cy="32" r="12" fill="#8FA3B8"/><circle cx="92" cy="32" r="5.5" fill="#EAEFF4" stroke-width="0"/>
+<circle cx="60" cy="66" r="38" fill="#8FA3B8"/>
+<ellipse cx="60" cy="85" rx="20" ry="13" fill="#EAEFF4"/>
+</g>
+<ellipse cx="60" cy="80" rx="6" ry="4.6" fill="#3E3226"/>
+<path d="M60 84 L60 89 M53 92 Q60 95 67 92" stroke="#5B4636" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M38 52 L50 56 M82 52 L70 56" stroke="#3E3226" stroke-width="3.4" stroke-linecap="round"/>
+<circle cx="46" cy="64" r="4.4" fill="#3E3226"/><circle cx="47.6" cy="62.4" r="1.4" fill="#fff"/>
+<circle cx="74" cy="64" r="4.4" fill="#3E3226"/><circle cx="75.6" cy="62.4" r="1.4" fill="#fff"/></svg>`}
+function svgDog(s=64){return `<svg class="mascot" viewBox="0 0 120 120" width="${s}" height="${s}" aria-label="豆豆教练">
+<g stroke="#5B4636" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+<path d="M28 38 Q13 43 15 66 Q17 84 30 87 Q24 62 35 45 Z" fill="#C98F3F"/>
+<path d="M92 38 Q107 43 105 66 Q103 84 90 87 Q96 62 85 45 Z" fill="#C98F3F"/>
+<circle cx="60" cy="63" r="37" fill="#E9B45C"/>
+<ellipse cx="60" cy="80" rx="21" ry="14" fill="#F8E8CB"/>
+<path d="M40 97 Q60 106 80 97 L78 106 Q60 113 42 106 Z" fill="#2F6F5E"/>
+</g>
+<ellipse cx="60" cy="74" rx="6.5" ry="5" fill="#4A3B2E"/>
+<path d="M60 79 L60 84 M52 87 Q60 92 68 87" stroke="#5B4636" stroke-width="3" fill="none" stroke-linecap="round"/>
+<circle cx="46" cy="58" r="4.6" fill="#3E3226"/><circle cx="47.7" cy="56.3" r="1.5" fill="#fff"/>
+<circle cx="74" cy="58" r="4.6" fill="#3E3226"/><circle cx="75.7" cy="56.3" r="1.5" fill="#fff"/>
+<path d="M39 48 Q44 45 49 48 M71 48 Q76 45 81 48" stroke="#5B4636" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+<ellipse cx="37" cy="68" rx="6" ry="3.6" fill="#F2A9A0" opacity=".7"/>
+<ellipse cx="83" cy="68" rx="6" ry="3.6" fill="#F2A9A0" opacity=".7"/></svg>`}
+/* 心情脸（同风格，替代 emoji） */
+function svgMood(kind,s=34){
+  const base=(inner)=>`<svg class="mascot" viewBox="0 0 120 120" width="${s}" height="${s}"><circle cx="60" cy="60" r="42" fill="#FBE7C8" stroke="#5B4636" stroke-width="4.5"/>${inner}</svg>`;
+  if(kind==='平静')return base(`<path d="M40 58 Q46 51 52 58 M68 58 Q74 51 80 58" stroke="#3E3226" stroke-width="3.6" fill="none" stroke-linecap="round"/><path d="M49 75 Q60 82 71 75" stroke="#5B4636" stroke-width="3.6" fill="none" stroke-linecap="round"/>`);
+  if(kind==='平常')return base(`<circle cx="46" cy="57" r="4.4" fill="#3E3226"/><circle cx="74" cy="57" r="4.4" fill="#3E3226"/><path d="M50 76 Q60 80 70 76" stroke="#5B4636" stroke-width="3.6" fill="none" stroke-linecap="round"/>`);
+  if(kind==='兴奋')return base(`<circle cx="46" cy="56" r="5.4" fill="#3E3226"/><circle cx="48" cy="54" r="1.8" fill="#fff"/><circle cx="74" cy="56" r="5.4" fill="#3E3226"/><circle cx="76" cy="54" r="1.8" fill="#fff"/><path d="M47 73 Q60 87 73 73 Z" fill="#5B4636"/><path d="M30 34 l3 6 6 3 -6 3 -3 6 -3 -6 -6 -3 6 -3 Z" fill="#E8A33D"/><path d="M90 30 l2.4 4.8 4.8 2.4 -4.8 2.4 -2.4 4.8 -2.4 -4.8 -4.8 -2.4 4.8 -2.4 Z" fill="#E8A33D"/>`);
+  if(kind==='紧张')return base(`<path d="M39 49 L52 54 M81 49 L68 54" stroke="#3E3226" stroke-width="3.4" stroke-linecap="round"/><circle cx="46" cy="60" r="4.2" fill="#3E3226"/><circle cx="74" cy="60" r="4.2" fill="#3E3226"/><path d="M47 79 Q53 74 59 79 Q65 84 73 78" stroke="#5B4636" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M92 40 Q98 49 92 54 Q86 49 92 40 Z" fill="#7FB4D8" stroke="#5B4636" stroke-width="2.4"/>`);
+  return base(`<path d="M39 51 L52 57 M81 51 L68 57" stroke="#3E3226" stroke-width="3.6" stroke-linecap="round"/><circle cx="46" cy="62" r="4.2" fill="#3E3226"/><circle cx="74" cy="62" r="4.2" fill="#3E3226"/><path d="M50 79 L70 79" stroke="#5B4636" stroke-width="3.8" stroke-linecap="round"/><ellipse cx="36" cy="72" rx="6.5" ry="4" fill="#E88A80" opacity=".8"/><ellipse cx="84" cy="72" rx="6.5" ry="4" fill="#E88A80" opacity=".8"/>`);
+}
+const MOODS=['平静','平常','兴奋','紧张','上头'];
+$('#brandMascot').innerHTML=svgDog(44);
+$('#heroDog').innerHTML=svgDog(88);
+$('#reviewDog').innerHTML=svgDog(88);
+$('#courtHeroMascots').innerHTML=`<span style="display:inline-flex;align-items:flex-end">${svgBull(78)}<span style="margin-left:-14px">${svgBear(78)}</span></span>`;
 
 async function api(url,options={}){
   const response=await fetch(url,{headers:{'Content-Type':'application/json',...(options.headers||{})},...options});
@@ -243,14 +358,8 @@ async function loadConfig(){
   try{
     CONFIG=await api('/api/config');
     const primary=CONFIG.llm.primary,backup=CONFIG.llm.backup;
-    $('#llmBadge').textContent=primary.configured?`AI ${primary.fast_model}`:backup.configured?`AI 备用 ${backup.model}`:'AI 未配置';
+    $('#llmBadge').textContent=primary.configured?'AI 教练已就绪':backup.configured?'AI 教练已就绪（备用通道）':'AI 未配置，部分功能暂停';
   }catch{$('#llmBadge').textContent='AI 配置读取失败'}
-}
-async function loadTicker(){
-  try{
-    const d=await api('/api/index');
-    $('#ticker').innerHTML=(d.index||[]).map(i=>`<span>${esc(i.name)} <b class="${pctClass(i.pct)}">${esc(i.price)} ${Number(i.pct)>0?'+':''}${esc(i.pct)}%</b></span>`).join('');
-  }catch{}
 }
 
 $('#quick').innerHTML=QUICK.map(([code,name])=>`<span data-code="${code}">${name} ${code}</span>`).join('');
@@ -296,7 +405,7 @@ function drawK(ks){
   if(!ks.length){$('#kInfo').textContent='暂无 K 线';return}
   const hi=Math.max(...ks.map(k=>k.high)),lo=Math.min(...ks.map(k=>k.low)),pad=12;
   const x=i=>pad+(W-pad*2)*i/(ks.length-1||1),y=v=>pad+(H-pad*2)*(1-(v-lo)/(hi-lo||1));
-  ks.forEach((k,i)=>{const color=k.close>=k.open?'#f05a67':'#39c987';ctx.strokeStyle=color;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(x(i),y(k.high));ctx.lineTo(x(i),y(k.low));ctx.stroke();
+  ks.forEach((k,i)=>{const color=k.close>=k.open?'#D65454':'#3E9268';ctx.strokeStyle=color;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(x(i),y(k.high));ctx.lineTo(x(i),y(k.low));ctx.stroke();
     const width=Math.max((W-pad*2)/ks.length*.55,1.5),yo=y(k.open),yc=y(k.close);ctx.fillRect(x(i)-width/2,Math.min(yo,yc),width,Math.max(Math.abs(yc-yo),1));});
   $('#kInfo').textContent=`${ks[0].date} 至 ${ks.at(-1).date}　最高 ${hi.toFixed(2)}　最低 ${lo.toFixed(2)}`;
 }
@@ -321,7 +430,7 @@ async function loadPicks(force=false){
     const d=await api('/api/ai_picks'+(force?'?f=1':''));$('#pickNote').textContent=(d.market_note||'')+(d.cached?' · 5分钟缓存':'');
     const picks=d.picks||[];if(!picks.length){$('#picks').innerHTML='<div class="empty">今天没有生成研究线索</div>';return}
     $('#picks').innerHTML=picks.map(p=>`<div class="pick" data-code="${esc(p.code)}"><span class="pick-title">${esc(p.name)}</span><span class="muted tiny">${esc(p.code)}</span>
-      <span class="angle">${esc(p.study_angle)}</span><div>💡 ${esc(p.reason)}</div><div class="muted tiny">反证：${esc(p.risk)}</div></div>`).join('');
+      <span class="angle">${esc(p.study_angle)}</span><div>${esc(p.reason)}</div><div class="muted tiny">反证：${esc(p.risk)}</div></div>`).join('');
   }catch(err){$('#picks').innerHTML=`<div class="empty">${formatError(err)}<br><span class="tiny">行情和模拟盘仍可正常使用</span></div>`}
 }
 $('#picks').onclick=e=>{const code=e.target.closest('[data-code]')?.dataset.code;if(code){$('#stockInput').value=code;loadQuote(code)}};
@@ -337,20 +446,20 @@ function runCommittee(){
   es.onerror=()=>{es.close();$('#committeeBtn').disabled=false;toast('委员会连接中断，请重试')};
 }
 function renderCommittee(d){
-  const roles=[['fundamental','📊','基本面'],['technical','📈','技术面'],['sentiment','🔥','情绪资金']];
-  const cards=roles.map(([key,icon,name])=>{const a=d.analysts?.[key]||{},color=a.stance==='看多'?'var(--red)':a.stance==='看空'?'var(--green)':'var(--line)';
-    return `<div class="agent" style="border-top-color:${color}"><div class="role">${icon} ${name}<span class="stance">${esc(a.stance||'中性')}</span></div>
+  const roles=[['fundamental','#E8A33D','基本面'],['technical','#5C7391','技术面'],['sentiment','#E07B39','情绪资金']];
+  const cards=roles.map(([key,dotColor,name])=>{const a=d.analysts?.[key]||{},color=a.stance==='看多'?'var(--up)':a.stance==='看空'?'var(--down)':'var(--line)';
+    return `<div class="agent" style="border-top-color:${color}"><div class="role"><span class="dot-ico" style="background:${dotColor}"></span>${name}<span class="stance">${esc(a.stance||'中性')}</span></div>
       <div class="muted tiny">评分 ${esc(a.score??'—')} / 100</div><p>${esc(a.valuation||a.pattern||a.capital_flow||'')}</p>
       ${(a.highlights||[]).length?`<ul>${a.highlights.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
       ${(a.risks||[]).length?`<ul class="muted">${a.risks.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
       <div class="muted tiny">${esc(a.signal_limit||a.reasoning||'')}</div></div>`}).join('');
   const r=d.researcher||d.trader||{},risk=d.risk||{};
-  const terms=(d.terms||[]).map(term=>`<span class="chip" data-term="${esc(term)}">📖 ${esc(term)}</span>`).join('');
+  const terms=(d.terms||[]).map(term=>`<span class="chip" data-term="${esc(term)}">${esc(term)}</span>`).join('');
   $('#committeeResult').innerHTML=`<div class="agents">${cards}</div><div class="research">
-    <div class="row space"><h2>🧭 首席研判官</h2><b>材料置信度 ${esc(r.confidence??'—')}%</b></div>
+    <div class="row space"><h2>首席研判官</h2><b>材料置信度 ${esc(r.confidence??'—')}%</b></div>
     <div class="question">下单前，请先回答——${esc(r.key_question||'什么证据会推翻你的判断？')}</div>
     <p><span class="muted">共同点：</span>${esc(r.consensus)}</p><p><span class="muted">核心分歧：</span>${esc(r.bull_bear_gap||r.divergence)}</p><p>${esc(r.thesis)}</p>
-    <div class="risk-box"><b>🛡️ 模拟盘风控教练 · ${esc(risk.verdict||'—')}</b><div class="muted tiny">建议单一模拟持仓上限 ${esc(risk.max_position_pct??'—')}%</div>
+    <div class="risk-box"><b>模拟盘风控教练 · ${esc(risk.verdict||'—')}</b><div class="muted tiny">建议单一模拟持仓上限 ${esc(risk.max_position_pct??'—')}%</div>
       ${(risk.risk_flags||[]).length?`<ul>${risk.risk_flags.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}<p>${esc(risk.discipline_lesson)}</p></div>
     <div class="row">${terms}<button onclick="openOrder('buy')" style="margin-left:auto">带着问题去模拟决策</button></div></div>
     <div class="muted tiny" style="margin-top:8px">${esc(d.disclaimer)}</div>`;
@@ -376,7 +485,7 @@ async function loadPortfolio(){
       <tr><td><b>${esc(x.name)}</b><br><span class="muted tiny">${esc(x.code)}</span></td><td>${esc(x.qty)}股</td><td>${esc(x.avg_cost.toFixed(2))}</td><td>${esc(x.current_price)}</td>
       <td class="${pctClass(x.pnl)}">${x.pnl>=0?'+':''}${money(x.pnl)}<br><span class="tiny">${x.pnl_pct>=0?'+':''}${esc(x.pnl_pct)}%</span></td>
       <td><button class="ghost tiny" data-sell="${esc(x.code)}" data-max="${esc(x.qty)}">模拟卖出</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">还没有持仓。第一次下单前，先认真写完灵魂三问。</div>';
-    $('#decisionLog').innerHTML=p.decisions.length?`<table><thead><tr><th>时间</th><th>公司</th><th>动作</th><th>数量</th><th>价格</th><th>情绪</th></tr></thead><tbody>${p.decisions.slice(0,12).map(x=>`
+    $('#decisionLog').innerHTML=p.decisions.length?`<table><thead><tr><th>时间</th><th>公司</th><th>动作</th><th>数量</th><th>价格</th><th>心情</th></tr></thead><tbody>${p.decisions.slice(0,12).map(x=>`
       <tr><td>${esc(localTime(x.created_at))}</td><td>${esc(x.name||x.code)}</td><td>${x.side==='buy'?'模拟买入':'模拟卖出'}</td><td>${esc(x.qty)}</td><td>${esc(x.price)}</td><td>${esc(x.emotion)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">决策日志还是空的</div>';
   }catch(err){$('#positions').innerHTML=`<div class="empty">${formatError(err)}</div>`}
 }
@@ -391,9 +500,9 @@ function openOrder(side='buy',code='',maxQty=0){
     <div class="field"><label>1. 为什么研究这家公司？写一个可核验的事实。</label><textarea id="a1" placeholder="例如：我观察到最近三年经营现金流……"></textarea></div>
     <div class="field"><label>2. 什么证据会推翻你的判断？</label><textarea id="a2" placeholder="例如：如果……持续两个季度，我会承认原判断不成立"></textarea></div>
     <div class="field"><label>3. 如果判断错了，你准备怎样保护模拟本金并复盘？</label><textarea id="a3" placeholder="写下具体纪律，不要只写“止损”"></textarea></div>
-    <div class="field"><label>此刻的情绪</label><div class="emotion">${['😌','🙂','🤩','😰','😤'].map((x,i)=>`<button data-emotion="${x}" class="${i===1?'on':''}">${x}</button>`).join('')}</div></div>
+    <div class="field"><label>此刻的心情</label><div class="emotion">${MOODS.map((m,i)=>`<button data-emotion="${m}" class="${i===1?'on':''}">${svgMood(m,34)}<span>${m}</span></button>`).join('')}</div></div>
     <div id="gateFeedback"></div><button id="submitOrder" style="width:100%" data-side="${side}" data-max="${maxQty}">检查三问并提交模拟订单</button>`;
-  ORDER_EMOTION='🙂';
+  ORDER_EMOTION='平常';
   $$('.emotion button').forEach(b=>b.onclick=()=>{ORDER_EMOTION=b.dataset.emotion;$$('.emotion button').forEach(x=>x.classList.toggle('on',x===b))});
   $('#submitOrder').onclick=submitOrder;
 }
@@ -412,37 +521,89 @@ async function submitOrder(){
   }finally{button.disabled=false;button.textContent='检查三问并提交模拟订单'}
 }
 
+/* ================= 牛熊裁判：一次只审一张卡 ================= */
 function openCourt(){
   const code=$('#courtCode').value.trim()||CUR?.quote?.code;if(!code)return toast('先输入股票代码');
   $('#courtBody').innerHTML='';$('#courtProgress').innerHTML='<span class="step on">书记员正在整理素材…</span>';
   const es=new EventSource('/api/court?code='+encodeURIComponent(code));
   es.addEventListener('progress',e=>{const d=JSON.parse(e.data);$('#courtProgress').innerHTML=`<span class="step on">${esc(d.label)}</span>`});
-  es.addEventListener('result',e=>{es.close();const d=JSON.parse(e.data);if(d.error){$('#courtBody').innerHTML=`<div class="panel empty">${esc(d.error)}</div>`;return}COURT={...d,choice:''};renderCourt()});
-  es.onerror=()=>{es.close();toast('开庭连接中断，请重试')};
+  es.addEventListener('result',e=>{es.close();const d=JSON.parse(e.data);if(d.error){$('#courtBody').innerHTML=`<div class="panel empty">${esc(d.error)}</div>`;return}startCourt(d)});
+  es.onerror=()=>{es.close();toast('开局连接中断，请重试')};
+}
+function startCourt(d){
+  const deck=[...(d.bull||[]).map(x=>({...x,side:'bull'})),...(d.bear||[]).map(x=>({...x,side:'bear'}))];
+  for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}
+  COURT={...d,deck,idx:0,verdict:null};
+  $('#courtProgress').innerHTML='';renderCourt();
+}
+function courtScore(){return Number(localStorage.getItem('court_score')||0)}
+function courtHeader(){
+  const c=COURT;
+  const dots=c.deck.map((_,i)=>`<i class="${i<c.idx?'done':i===c.idx&&!c.verdict?'cur':''}"></i>`).join('');
+  return `<div class="court-head"><div><h2 style="margin:0">${esc(c.name)} <span class="muted tiny">${esc(c.code)}</span></h2></div>
+    <div class="row"><span class="muted tiny">火眼金睛</span><span class="scoreline">${courtScore()}</span><span class="dots">${dots}</span></div></div>
+    <div class="vs-row"><span class="fighter bull">${svgBull(34)} 牛牛 · 替它说好话</span><span class="vs">你来当裁判</span><span class="fighter bear">${svgBear(34)} 熊熊 · 给它挑毛病</span></div>`;
 }
 function renderCourt(){
-  const c=COURT,arg=(item,side)=>`<button class="argument ${c.choice===item.id?'selected':''}" data-arg="${esc(item.id)}">${side==='bull'?'🔴':'🔵'} ${esc(item.text)}</button>`;
-  $('#courtProgress').innerHTML='';$('#courtBody').innerHTML=`<div class="row space"><h2>${esc(c.name)} ${esc(c.code)}</h2><div>火眼金睛 <span class="scoreline">${localStorage.getItem('court_score')||0}</span> 分</div></div>
-    <div class="court"><div class="side bull"><h2>🔴 红方：为什么可能值得研究</h2>${(c.bull||[]).map(x=>arg(x,'bull')).join('')}</div>
-    <div class="side bear"><h2>🔵 蓝方：为什么必须怀疑</h2>${(c.bear||[]).map(x=>arg(x,'bear')).join('')}</div></div>
-    <button id="verdictBtn" style="margin-top:12px" ${c.choice?'':'disabled'}>提交判决</button><div id="verdictResult"></div>`;
-  $$('.argument').forEach(b=>b.onclick=()=>{COURT.choice=b.dataset.arg;renderCourt()});$('#verdictBtn').onclick=submitVerdict;
+  const c=COURT;
+  if(c.verdict){renderVerdict();return}
+  if(c.idx>=c.deck.length){
+    $('#courtBody').innerHTML=`${courtHeader()}<div class="claim-card" style="text-align:center">
+      <div style="display:flex;justify-content:center;margin-bottom:8px">${svgDog(72)}</div>
+      <div class="claim">每张都觉得有道理？其中必有一张在骗你。<br><span class="muted" style="font-size:14px">豆豆教练：再听一遍，这次带着怀疑听。</span></div>
+      <div class="judge-row" style="margin-top:16px"><button class="judge-btn btn-ok" onclick="COURT.idx=0;renderCourt()">再听一遍</button></div></div>`;
+    return;
+  }
+  const card=c.deck[c.idx],isBull=card.side==='bull';
+  $('#courtBody').innerHTML=`${courtHeader()}
+    <div class="claim-card ${isBull?'bull-side':'bear-side'}">
+      <div class="speaker">${isBull?svgBull(52):svgBear(52)}
+        <div><div class="speaker-name ${card.side}">${isBull?'牛牛':'熊熊'}说：</div>
+        <div class="speaker-side">${isBull?'替这家公司说好话':'专给这家公司挑毛病'} · 第 ${c.idx+1} 张 / 共 ${c.deck.length} 张</div></div></div>
+      <div class="claim">「${esc(card.text)}」</div>
+    </div>
+    <div class="judge-row">
+      <button class="judge-btn btn-ok" id="okBtn">有道理<span class="sub">这句说得对，下一张</span></button>
+      <button class="judge-btn btn-trap" id="trapBtn">有坑！<span class="sub">这句话在骗我，就是它</span></button>
+    </div>`;
+  $('#okBtn').onclick=()=>{COURT.idx++;renderCourt()};
+  $('#trapBtn').onclick=()=>submitVerdict(card.id);
 }
-async function submitVerdict(){
-  try{const d=await api('/api/court/verdict',{method:'POST',body:JSON.stringify({attempt_id:COURT.attempt_id,choice:COURT.choice})});
-    let score=Number(localStorage.getItem('court_score')||0);if(d.correct)score+=10;localStorage.setItem('court_score',score);
-    $$('.argument').forEach(b=>{b.disabled=true;if(b.dataset.arg===d.flaw_id)b.classList.add('answer')});
-    $('#verdictBtn').disabled=true;$('#verdictResult').innerHTML=`<div class="notice"><b>${d.correct?'判对了，+10 分':'这次被论证带跑了'}</b><br>缺陷类型：${esc(d.flaw_type)}<br>${esc(d.flaw_explain)}</div>`;
+async function submitVerdict(choiceId){
+  try{
+    const d=await api('/api/court/verdict',{method:'POST',body:JSON.stringify({attempt_id:COURT.attempt_id,choice:choiceId})});
+    let score=courtScore();if(d.correct)score+=10;localStorage.setItem('court_score',score);
+    COURT.verdict={...d,choiceId};renderCourt();
   }catch(err){toast(err.message)}
+}
+function renderVerdict(){
+  const c=COURT,v=c.verdict;
+  const flawCard=c.deck.find(x=>x.id===v.flaw_id);
+  const picked=c.deck.find(x=>x.id===v.choiceId);
+  $('#courtBody').innerHTML=`${courtHeader()}
+    <div class="claim-card ${flawCard?.side==='bull'?'bull-side':'bear-side'}">
+      <div class="speaker">${flawCard?.side==='bull'?svgBull(52):svgBear(52)}
+        <div><div class="speaker-name ${flawCard?.side||''}">埋坑的这张：</div></div></div>
+      <div class="claim">「${esc(flawCard?.text||'')}」</div>
+    </div>
+    <div class="verdict-card ${v.correct?'good':''}">
+      <div style="display:flex;gap:12px;align-items:flex-start">${svgDog(56)}
+        <div><div class="verdict-title">${v.correct?'判对了！火眼金睛 +10':'这次被漂亮话带跑了'}</div>
+        ${v.correct?'':`<p class="muted tiny" style="margin:2px 0 6px">你选的是：「${esc(picked?.text||'')}」——这张其实站得住。</p>`}
+        <p style="margin:4px 0">${esc(v.flaw_explain)}</p>
+        <span class="trap-chip">陷阱卡：${esc(v.flaw_type)}</span></div></div>
+      <div class="judge-row" style="margin-top:14px"><button class="judge-btn btn-ok" onclick="openCourt()">再开一局</button>
+      <button class="judge-btn" style="background:var(--panel2);color:var(--text)" onclick="openOrder('buy')">带着判断去模拟决策</button></div>
+    </div>`;
 }
 
 function savedTerms(){try{return JSON.parse(localStorage.getItem('praxis_terms')||'{}')}catch{return {}}}
 function saveTerms(data){localStorage.setItem('praxis_terms',JSON.stringify(data));renderGlossary()}
 async function explainTerm(term){
   term=(term||'').trim();if(!term)return toast('先输入一个术语');
-  $('#modal').classList.add('show');$('#modalCard').innerHTML=`<button class="close" onclick="closeModal()">×</button><div class="empty"><span class="spin"></span> 教练正在讲「${esc(term)}」…</div>`;
+  $('#modal').classList.add('show');$('#modalCard').innerHTML=`<button class="close" onclick="closeModal()">×</button><div class="empty"><span class="spin"></span> 豆豆教练正在讲「${esc(term)}」…</div>`;
   try{const d=await api('/api/explain?term='+encodeURIComponent(term)+'&context='+encodeURIComponent(CUR?`${CUR.quote.name} 现价${CUR.quote.price}`:''));
-    const saved=savedTerms(),isSaved=Boolean(saved[d.term||term]);$('#modalCard').innerHTML=`<button class="close" onclick="closeModal()">×</button><h2>${esc(d.term||term)}</h2><h3 style="color:var(--cyan)">${esc(d.one_line)}</h3>
+    const saved=savedTerms(),isSaved=Boolean(saved[d.term||term]);$('#modalCard').innerHTML=`<button class="close" onclick="closeModal()">×</button><h2>${esc(d.term||term)}</h2><h3 style="color:var(--primary)">${esc(d.one_line)}</h3>
       <p>${esc(d.detail)}</p><h3>研究时怎么用</h3><p>${esc(d.how_to_use)}</p><div class="notice">新手易踩坑：${esc(d.pitfall)}</div>
       <button id="saveTermBtn">${isSaved?'取消收藏':'收藏到概念图鉴'}</button>`;
     $('#saveTermBtn').onclick=()=>{const all=savedTerms(),key=d.term||term;if(all[key])delete all[key];else all[key]=d;saveTerms(all);$('#saveTermBtn').textContent=all[key]?'取消收藏':'收藏到概念图鉴'};
@@ -456,9 +617,9 @@ function renderGlossary(){
 $('#glossaryGrid').onclick=e=>{const term=e.target.dataset.openTerm;if(term)explainTerm(term)};
 
 async function generateReview(){
-  const button=$('#reviewBtn');button.disabled=true;$('#reviewBody').innerHTML='<div class="panel empty"><span class="spin"></span> 教练正在翻你的决策日志，这会比普通对话慢一点…</div>';
+  const button=$('#reviewBtn');button.disabled=true;$('#reviewBody').innerHTML='<div class="panel empty"><span class="spin"></span> 豆豆教练正在翻你的决策日志，这会比普通对话慢一点…</div>';
   try{const d=await api('/api/review',{method:'POST',body:'{}'}),r=d.review||{};
-    $('#reviewBody').innerHTML=`<div class="panel"><div class="row space"><h2>${esc(r.title||'我的复盘信')}</h2><button class="ghost" id="ttsBtn">🔊 听复盘</button></div>
+    $('#reviewBody').innerHTML=`<div class="panel"><div class="row space"><h2>${esc(r.title||'我的复盘信')}</h2><button class="ghost" id="ttsBtn">听复盘</button></div>
       <div class="letter">${esc(r.letter)}</div>${(r.biases||[]).length?`<p>本次观察到：${r.biases.map(x=>`<span class="chip">${esc(x)}</span>`).join(' ')}</p>`:''}
       <div class="notice">下次练习：${esc(r.next_exercise)}</div></div>`;
     $('#ttsBtn').onclick=()=>playReview(r.letter);
@@ -474,7 +635,32 @@ $('#disclaimerBtn').onclick=()=>{localStorage.setItem('praxis_disclaimer','1');$
 if(!localStorage.getItem('praxis_disclaimer'))$('#disclaimerModal').classList.add('show');
 $('#modal').onclick=e=>{if(e.target===e.currentTarget)closeModal()};
 
-loadConfig();loadTicker();setInterval(loadTicker,30000);loadMovers();loadPicks();loadPortfolio();renderGlossary();
+/* 样式预览模式：?preview=court 时加载一副示例牌（不调用后端，供 UI 打磨与彩排） */
+if(location.search.includes('preview=court')){
+  localStorage.setItem('praxis_disclaimer','1');$('#disclaimerModal').classList.remove('show');
+  goPage('court');
+  const deck=[
+    {id:'b1',side:'bull',text:'最近半年，它每卖 100 块钱能留下的利润越来越多——生意越做越赚。'},
+    {id:'r1',side:'bear',text:'它六成家底是借来的，一旦行业转冷，还钱的压力不小。'},
+    {id:'b2',side:'bull',text:'仓库丢了一批货，好在保险公司全额赔了，所以这件事对公司几乎没影响。'},
+    {id:'r2',side:'bear',text:'大客户占它收入的比重很高，人家一砍单，它就要疼。'},
+    {id:'b3',side:'bull',text:'一季度收入和利润都涨得快，公司还在长个子。'},
+  ];
+  COURT={name:'东山精密',code:'002384',attempt_id:'preview',deck,idx:0,verdict:null,preview:true};
+  submitVerdict=async(choiceId)=>{
+    const d={correct:choiceId==='b2',flaw_id:'b2',flaw_type:'只看账面，不看原因',
+      flaw_explain:'保险赔得了货的钱，赔不了「为什么会丢」——管理上的漏洞，不会因为理赔就消失。'};
+    let score=courtScore();if(d.correct)score+=10;localStorage.setItem('court_score',score);
+    COURT.verdict={...d,choiceId};renderCourt();
+  };
+  if(location.search.includes('verdict=1')){COURT.idx=2;submitVerdict('b2')}else renderCourt();
+}
+if(location.search.includes('preview=order')){
+  localStorage.setItem('praxis_disclaimer','1');$('#disclaimerModal').classList.remove('show');
+  openOrder('buy','002384');
+}
+
+loadConfig();loadMovers();loadPicks();loadPortfolio();renderGlossary();
 </script>
 </body>
 </html>
