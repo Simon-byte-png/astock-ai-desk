@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-度小满赛道 · A股 AI 专业研判台后端（stdlib，无第三方依赖）。
+A股 AI 专业研判台 Pro Desk 后端（stdlib，无第三方依赖）。
 绑定 $HOST:$PORT（平台注入）。API：
   GET /                      看板页面
   GET /api/index             大盘指数快照
@@ -227,7 +227,7 @@ def main():
                     f"llm={_llm_host()} ===\n")
     except Exception:
         pass
-    print(f"度小满 · A股AI专业研判台 运行在 http://{HOST}:{PORT} · LLM {_llm_host()}")
+    print(f"A股AI专业研判台 Pro Desk 运行在 http://{HOST}:{PORT} · LLM {_llm_host()}")
     srv.serve_forever()
 
 
