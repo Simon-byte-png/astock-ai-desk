@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-A股 AI 交易委员会 —— Web 盯盘看板后端（stdlib，无第三方依赖）。
+度小满赛道 · A股 AI 专业研判台后端（stdlib，无第三方依赖）。
 绑定 $HOST:$PORT（平台注入）。API：
   GET /                      看板页面
   GET /api/index             大盘指数快照
@@ -59,9 +59,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/diag":
                 return self._diag()
             if path == "/api/config":
-                from lib import llm
-                return self._json({"llm_host": llm.BASE.split("//")[-1].split("/")[0],
-                                   "model": llm.MODEL_FAST})
+                return self._json(_llm_runtime())
             if path == "/api/index":
                 return self._json({"index": market.index_snapshot()})
             if path == "/api/movers":
@@ -110,8 +108,8 @@ class Handler(BaseHTTPRequestHandler):
     def _diag(self):
         from lib import llm
         import time as _t
-        info = {"llm_base": llm.BASE, "model": llm.MODEL_FAST,
-                "token_head": (llm.TOKEN or "")[:8] + "…"}
+        # 只报告服务商和模型状态，绝不返回密钥片段。
+        info = _llm_runtime()
         t = _t.time()
         try:
             r = llm.chat("你是测试器", "只回复两个字：正常", max_tokens=2000)
@@ -187,9 +185,38 @@ class Handler(BaseHTTPRequestHandler):
                 break
 
 
-def _llm_host():
+def _llm_runtime():
     from lib import llm
-    return llm.BASE.split("//")[-1].split("/")[0] + " / " + llm.MODEL_FAST
+    status = llm.provider_status()
+    primary = status["primary"]
+    if primary["configured"]:
+        return {
+            "configured": True,
+            "provider": primary["name"],
+            "llm_host": primary["host"],
+            "model": primary["fast_model"],
+        }
+    backup = status["backup"]
+    if backup["configured"]:
+        return {
+            "configured": True,
+            "provider": backup["name"],
+            "llm_host": backup["host"],
+            "model": backup["model"],
+        }
+    return {
+        "configured": False,
+        "provider": None,
+        "llm_host": None,
+        "model": None,
+    }
+
+
+def _llm_host():
+    info = _llm_runtime()
+    if not info["configured"]:
+        return "not configured"
+    return info["llm_host"] + " / " + info["model"]
 
 
 def main():
@@ -200,7 +227,7 @@ def main():
                     f"llm={_llm_host()} ===\n")
     except Exception:
         pass
-    print(f"A股AI交易委员会看板 运行在 http://{HOST}:{PORT}")
+    print(f"度小满 · A股AI专业研判台 运行在 http://{HOST}:{PORT} · LLM {_llm_host()}")
     srv.serve_forever()
 
 

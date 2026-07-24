@@ -1,8 +1,8 @@
-# 🏛️ A股 AI 交易委员会（TradingAgents 复现 + 教学增强）
+# 🏛️ 度小满赛道｜A股 AI 专业研判台
 
-多智能体 A 股盯盘 / 决策辅助 / 边学边练系统。零第三方依赖（纯 Python 标准库 + urllib 直连行情与 Claude）。
+面向有自主判断能力的投资者，提供多源行情、五智能体研究、情景预测、风险审查和策略回测。零第三方依赖（纯 Python 标准库 + urllib）。
 
-> ⚠️ **教育与研究用途，不构成投资建议。** 系统只给结构化建议 + 讲解，**绝不自动下单**。A股实盘有滑点、T+1、政策与情绪风险，请独立决策、严控仓位。
+> ⚠️ **教育与研究用途，不构成投资建议。** 预测是基于公开数据的情景推演，不是收益承诺；系统**绝不自动下单**。A股实盘有滑点、T+1、政策与情绪风险，请独立决策、严控仓位。
 
 ## 它做什么
 1. **实时盯盘**：东财/腾讯/新浪行情、日K、财务主要指标、主力资金流、个股新闻、大盘指数。
@@ -16,15 +16,17 @@
 ## 运行
 ```bash
 cd astock-desk
+export STEP_API_KEY="你的阶跃密钥"       # 或配置 DEEPSEEK_API_KEY
 python3 server.py        # 读 $HOST:$PORT，默认 0.0.0.0:8000
 ```
-平台预览已配好 `.zaocode/preview.json`，右侧预览框直接可用。
+
+Zeabur 部署时把 `STEP_API_KEY` / `DEEPSEEK_API_KEY` 配在项目 Variables，密钥不写入代码。
 
 ## 架构
 | 文件 | 职责 |
 |---|---|
 | `lib/market.py` | 数据层：行情/K线/基本面/资金流/新闻/技术指标（多源兜底、重试） |
-| `lib/llm.py` | Claude 客户端：**流式(SSE)** 调用避免长响应截断、强制 JSON、并发 |
+| `lib/llm.py` | OpenAI 兼容客户端：DeepSeek 主通道、阶跃备用通道、流式输出与自动降级 |
 | `lib/agents.py` | 5 个 agent + 按需教学 `explain()` + 委员会编排 |
 | `lib/backtest.py` | 规则策略回测引擎 + 指标 + 基准对比 |
 | `server.py` | stdlib HTTP 服务，含 SSE 进度推送 |
