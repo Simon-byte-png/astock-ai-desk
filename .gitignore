@@ -18,3 +18,8 @@ Thumbs.db
 /share/
 .daymug-uploads/
 .codex/
+.env
+.env.*
+!.env.example
+*.pem
+*.key

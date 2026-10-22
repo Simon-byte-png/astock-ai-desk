@@ -1,0 +1,37 @@
+name: tests
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m unittest discover -s astock-desk/tests -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test astock-desk/tests/frontend.test.cjs
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t praxis-test .
+      - name: Verify non-root container and writable database
+        run: |
+          docker run -d --name praxis -p 127.0.0.1:18000:8000 praxis-test
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:18000/health; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:18000/api/portfolio > /tmp/portfolio.json
+          python -c 'import json; assert json.load(open("/tmp/portfolio.json"))["cash"] == 100000'
+          test "$(docker exec praxis id -u)" = "10001"
+      - if: always()
+        run: docker logs praxis || true
