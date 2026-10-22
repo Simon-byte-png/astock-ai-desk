@@ -6,6 +6,7 @@ import ssl
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 
 _CTX = ssl.create_default_context()
@@ -34,14 +35,14 @@ def provider_status():
     return {
         "primary": {
             "name": "deepseek",
-            "host": DEEPSEEK_BASE.split("//")[-1].split("/")[0],
+            "host": urlparse(DEEPSEEK_BASE).hostname,
             "configured": bool(DEEPSEEK_KEY),
             "fast_model": MODEL_FAST,
             "strong_model": MODEL_STRONG,
         },
         "backup": {
             "name": "step",
-            "host": STEP_BASE.split("//")[-1].split("/")[0],
+            "host": urlparse(STEP_BASE).hostname,
             "configured": bool(STEP_KEY),
             "model": MODEL_BACKUP,
             "tts_model": MODEL_TTS,
@@ -51,12 +52,23 @@ def provider_status():
 
 def _error_text(exc):
     if isinstance(exc, urllib.error.HTTPError):
-        try:
-            detail = exc.read(800).decode("utf-8", "ignore")
-        except Exception:
-            detail = ""
-        return f"HTTP {exc.code}: {detail or exc.reason}"
-    return f"{type(exc).__name__}: {exc}"
+        exc.close()
+        return f"HTTP {exc.code}"
+    return type(exc).__name__
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Never forward provider authorization to a redirected host.
+        raise RuntimeError("模型服务重定向已拒绝")
+
+
+def _open(req, timeout):
+    parsed = urlparse(req.full_url)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        raise ValueError("模型地址必须为不含用户名密码的 HTTPS URL")
+    opener = urllib.request.build_opener(_NoRedirect(), urllib.request.HTTPSHandler(context=_CTX))
+    return opener.open(req, timeout=timeout)
 
 
 def _stream_chat(provider_name, system, user, model, max_tokens, temperature,
@@ -93,13 +105,23 @@ def _stream_chat(provider_name, system, user, model, max_tokens, temperature,
         method="POST",
     )
     chunks = []
-    with urllib.request.urlopen(req, timeout=150, context=_CTX) as response:
-        for raw in response:
+    deadline = time.monotonic() + 180
+    total_bytes = 0
+    with _open(req, timeout=30) as response:
+        while True:
+            raw = response.readline(128 * 1024)
+            if not raw:
+                break
+            total_bytes += len(raw)
+            if time.monotonic() > deadline or total_bytes > 2 * 1024 * 1024:
+                raise RuntimeError("模型响应超时或过大")
             line = raw.decode("utf-8", "ignore").strip()
             if not line.startswith("data:"):
                 continue
             data = line[5:].strip()
-            if not data or data == "[DONE]":
+            if data == "[DONE]":
+                break
+            if not data:
                 continue
             try:
                 event = json.loads(data)
@@ -201,7 +223,9 @@ def tts(text, voice=None):
     """调用阶跃 TTS，返回 MP3 字节。"""
     if not STEP_KEY:
         raise RuntimeError("未配置 STEP_API_KEY，语音复盘暂不可用")
-    clean = (text or "").strip()
+    if not isinstance(text, str) or (voice is not None and not isinstance(voice, str)):
+        raise ValueError("朗读文字和音色必须是字符串")
+    clean = text.strip()
     if not clean:
         raise ValueError("缺少要朗读的文字")
     payload = {
@@ -220,8 +244,11 @@ def tts(text, voice=None):
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=120, context=_CTX) as response:
-        return response.read()
+    with _open(req, timeout=30) as response:
+        audio = response.read(10 * 1024 * 1024 + 1)
+        if len(audio) > 10 * 1024 * 1024:
+            raise RuntimeError("语音响应过大")
+        return audio
 
 
 if __name__ == "__main__":

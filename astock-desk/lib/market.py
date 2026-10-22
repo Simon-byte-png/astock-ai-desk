@@ -5,17 +5,19 @@ A股数据层：纯 urllib，无第三方依赖。
 所有网络函数都做了容错，失败返回 None 或空结构，不抛异常打断上层。
 """
 import urllib.request, urllib.parse, json, ssl, re, time, datetime, os
+import threading
+import math
 
 
 def _beijing_now():
     return datetime.datetime.utcnow() + datetime.timedelta(hours=8)
 
 _CTX = ssl.create_default_context()
-_CTX.check_hostname = False
-_CTX.verify_mode = ssl.CERT_NONE
 _UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
 _cache = {}
+_cache_lock = threading.Lock()
+MAX_CACHE_ENTRIES = 512
 _SNAPSHOT = None
 
 
@@ -36,23 +38,34 @@ def _snapshot(section, code=None):
         value = dict(value)
         value["classroom_mode"] = True
         value["snapshot_as_of"] = (_SNAPSHOT or {}).get("generated_at", "")
+    elif isinstance(value, list):
+        value = [{**item, "classroom_mode": True,
+                  "snapshot_as_of": (_SNAPSHOT or {}).get("generated_at", "")}
+                 if isinstance(item, dict) else item for item in value]
     return value
 
 
 def _get(url, headers=None, timeout=8, ttl=0, encoding="utf-8", retries=3):
     key = url
     now = time.time()
-    if ttl and key in _cache and now - _cache[key][0] < ttl:
-        return _cache[key][1]
+    with _cache_lock:
+        cached = _cache.get(key)
+        if ttl and cached and now - cached[0] < ttl:
+            return cached[1]
     last = None
     for attempt in range(retries):
         try:
             req = urllib.request.Request(url, headers={**_UA, **(headers or {})})
-            r = urllib.request.urlopen(req, timeout=timeout, context=_CTX)
-            raw = r.read()
+            with urllib.request.urlopen(req, timeout=timeout, context=_CTX) as r:
+                raw = r.read(4 * 1024 * 1024 + 1)
+            if len(raw) > 4 * 1024 * 1024:
+                raise ValueError("行情响应过大")
             data = raw.decode(encoding, "ignore")
             if ttl:
-                _cache[key] = (now, data)
+                with _cache_lock:
+                    if key not in _cache and len(_cache) >= MAX_CACHE_ENTRIES:
+                        _cache.pop(next(iter(_cache)))
+                    _cache[key] = (now, data)
             return data
         except Exception as e:
             last = e
@@ -62,10 +75,11 @@ def _get(url, headers=None, timeout=8, ttl=0, encoding="utf-8", retries=3):
 # ---------- 代码/市场判定 ----------
 def normalize(code):
     """输入 600519 / sh600519 / 600519.SH → 返回 6位纯代码"""
-    code = str(code).strip().upper().replace("SH", "").replace("SZ", "").replace("BJ", "")
-    code = code.replace(".", "").strip()
-    m = re.search(r"\d{6}", code)
-    return m.group(0) if m else code
+    value = str(code or "").strip().upper()
+    m = re.fullmatch(r"(?:SH|SZ|BJ)?([0-9]{6})|([0-9]{6})\.(?:SH|SZ|BJ)", value)
+    if not m:
+        raise ValueError("股票代码须为6位数字，可带 SH/SZ/BJ 前缀或后缀")
+    return m.group(1) or m.group(2)
 
 def market_of(code):
     """返回 'SH'/'SZ'/'BJ'"""
@@ -96,7 +110,9 @@ def quote(code):
         payload = txt.split('="', 1)[1].rstrip('";\n')
         f = payload.split("~")
         def num(i, d=0.0):
-            try: return float(f[i])
+            try:
+                value = float(f[i])
+                return value if math.isfinite(value) else d
             except: return d
         return {
             "code": normalize(code),
@@ -184,12 +200,13 @@ def data_status(quote, kline_list):
         except Exception:
             pass
     q = quote or {}
-    if q.get("classroom_mode"):
+    snapshot_bar = next((bar for bar in kline_list if bar.get("classroom_mode")), {})
+    if q.get("classroom_mode") or snapshot_bar:
         st.update({
             "stale": True,
             "classroom_mode": True,
             "reason": "实时数据源暂不可用，当前为课堂模式（快照数据），不可用于真实交易判断",
-            "as_of": q.get("snapshot_as_of", ""),
+            "as_of": q.get("snapshot_as_of") or snapshot_bar.get("snapshot_as_of", ""),
         })
         return st
     if not st["stale"] and (q.get("volume_lot", 0) == 0 and q.get("turnover", 0) == 0
@@ -219,7 +236,7 @@ def _kline_sina(code, period, limit):
         for r in arr:
             c = float(r["close"])
             out.append({
-                "date": r["day"], "open": float(r["open"]), "close": c,
+                "source": "sina", "date": r["day"], "open": float(r["open"]), "close": c,
                 "high": float(r["high"]), "low": float(r["low"]),
                 "volume": float(r.get("volume", 0)), "amount": 0.0,
                 "pct": round((c / prev - 1) * 100, 2) if prev else 0.0,
@@ -229,7 +246,7 @@ def _kline_sina(code, period, limit):
     except Exception:
         return []
 
-def _kline_em(code, period, limit, fq=1):
+def _kline_em(code, period, limit, fq=0):
     klt = _EM_KLT.get(period, 101)
     url = (f"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid={secid(code)}"
            f"&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56,f57,f58"
@@ -243,7 +260,7 @@ def _kline_em(code, period, limit, fq=1):
         for line in d.get("klines", []):
             p = line.split(",")
             out.append({
-                "date": p[0], "open": float(p[1]), "close": float(p[2]),
+                "source": "eastmoney", "date": p[0], "open": float(p[1]), "close": float(p[2]),
                 "high": float(p[3]), "low": float(p[4]),
                 "volume": float(p[5]), "amount": float(p[6]),
                 "pct": float(p[7]) if len(p) > 7 else 0.0,
@@ -252,8 +269,8 @@ def _kline_em(code, period, limit, fq=1):
     except Exception:
         return []
 
-def kline(code, period="day", limit=250, fq=1):
-    """日/分钟K线。新浪(不复权)优先、东财(前复权)兜底；周月线仅东财。"""
+def kline(code, period="day", limit=250, fq=0):
+    """日/分钟K线。新浪(不复权)优先、东财(默认不复权)兜底；周月线仅东财。"""
     if period in ("week", "month"):
         items = _kline_em(code, period, limit, fq)
         if items:
@@ -358,6 +375,11 @@ def news(code, limit=8):
 
 # ---------- 搜索股票（按名称/代码） ----------
 def search(keyword):
+    keyword = str(keyword or "").strip()
+    if not keyword:
+        return []
+    if len(keyword) > 80:
+        raise ValueError("搜索词最多80字")
     url = ("https://searchapi.eastmoney.com/api/suggest/get?type=14&count=8&input="
            + urllib.parse.quote(str(keyword)))
     txt = _get(url, ttl=600)

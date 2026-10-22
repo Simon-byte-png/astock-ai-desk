@@ -6,3 +6,7 @@
 **/*.db-wal
 **/*.db-shm
 **/*.log
+**/.env
+**/.env.*
+**/*.pem
+**/*.key

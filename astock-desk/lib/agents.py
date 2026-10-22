@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """面向理财新手的研究委员会、灵魂三问、多空法庭和复盘教练。"""
 import json
+import math
 import re
 
 from . import llm, market
@@ -37,6 +38,7 @@ def gather(code):
     return {
         "code": market.normalize(code),
         "quote": q,
+        "data_status": market.data_status(q, ks),
         "kline_tail": ks[-30:],
         "indicators": market.indicators(closes, highs, lows, vols) if closes else {},
         "fundamentals": market.fundamentals(code),
@@ -119,6 +121,7 @@ REVIEW_SYS = _prompt("""你是模拟投资复盘教练。根据持仓和决策�
 def analyst_fundamental(ctx):
     q = ctx["quote"] or {}
     payload = {
+        "数据状态": ctx.get("data_status", {}),
         "名称": q.get("name"), "现价": q.get("price"), "PE_TTM": q.get("pe_ttm"),
         "PB": q.get("pb"), "总市值亿": q.get("total_mv_yi"),
         "财务主要指标_近4期": ctx["fundamentals"],
@@ -128,6 +131,7 @@ def analyst_fundamental(ctx):
 
 def analyst_technical(ctx):
     payload = {
+        "数据状态": ctx.get("data_status", {}),
         "指标": ctx["indicators"], "量比": (ctx["quote"] or {}).get("vol_ratio"),
         "换手率": (ctx["quote"] or {}).get("turnover"),
     }
@@ -136,6 +140,7 @@ def analyst_technical(ctx):
 
 def analyst_sentiment(ctx):
     payload = {
+        "数据状态": ctx.get("data_status", {}),
         "资金流": ctx["money_flow"], "量比": (ctx["quote"] or {}).get("vol_ratio"),
         "换手率": (ctx["quote"] or {}).get("turnover"),
         "今日涨跌幅": (ctx["quote"] or {}).get("pct"),
@@ -146,6 +151,7 @@ def analyst_sentiment(ctx):
 
 def researcher_decide(ctx, fund, tech, sentiment):
     payload = {
+        "数据状态": ctx.get("data_status", {}),
         "现价": (ctx["quote"] or {}).get("price"),
         "基本面": fund, "技术面": tech, "情绪资金": sentiment,
     }
@@ -156,6 +162,7 @@ def researcher_decide(ctx, fund, tech, sentiment):
 def risk_review(ctx, research):
     q = ctx["quote"] or {}
     payload = {
+        "数据状态": ctx.get("data_status", {}),
         "标的": q.get("name"), "现价": q.get("price"), "PE": q.get("pe_ttm"),
         "PB": q.get("pb"), "波动率年化%": ctx["indicators"].get("vol_annual_pct"),
         "研判摘要": research,
@@ -226,19 +233,22 @@ def run_committee(code, progress=None):
 
     def score(item):
         try:
-            return float(item.get("score", 0))
+            value = float(item.get("score", 0))
+            return max(-100, min(100, value)) if math.isfinite(value) else 0
         except (TypeError, ValueError):
             return 0
 
     terms = []
     for item in (fund, tech, sentiment, research, risk):
-        for term in item.get("terms") or []:
-            if term and term not in terms:
+        values = item.get("terms") or []
+        for term in values if isinstance(values, list) else []:
+            if isinstance(term, str) and term and term not in terms:
                 terms.append(term)
     return {
         "code": ctx["code"],
         "name": (ctx["quote"] or {}).get("name"),
         "quote": ctx["quote"],
+        "data_status": ctx["data_status"],
         "indicators": ctx["indicators"],
         "kline_tail": ctx["kline_tail"],
         "composite_score": round((score(fund) + score(tech) + score(sentiment)) / 3, 1),
@@ -262,11 +272,25 @@ def run_court(code, progress=None):
         progress("debate", "红蓝双方正在准备论据，其中一条藏着逻辑漏洞…")
     fund, tech, sentiment = _analysts(ctx)
     material = {
+        "数据状态": ctx.get("data_status", {}),
         "标的": {"code": ctx["code"], "name": (ctx["quote"] or {}).get("name")},
         "基本面研报": fund, "技术面研报": tech, "情绪资金研报": sentiment,
     }
     out = llm.chat_json(COURT_FLAW_SYS, "研报素材：\n" + _j(material),
                         model=llm.MODEL_STRONG, max_tokens=3000)
+    for side in ("bull", "bear"):
+        rows = out.get(side)
+        if not isinstance(rows, list) or len(rows) != 5 or any(
+            not isinstance(row, dict) or row.get("id") != f"{side}-{i + 1}"
+            or not isinstance(row.get("text"), str) or not row["text"].strip()
+            for i, row in enumerate(rows)
+        ):
+            raise RuntimeError("模型未生成完整庭审题目，请重新开庭")
+        # Only whitelisted public fields may leave the server.
+        out[side] = [{"id": row["id"], "text": row["text"][:300]} for row in rows]
+    if out.get("flaw_id") not in {row["id"] for row in out["bull"] + out["bear"]}:
+        raise RuntimeError("模型生成的庭审答案无效，请重新开庭")
+    out = {key: out.get(key, "") for key in ("bull", "bear", "flaw_id", "flaw_type", "flaw_explain")}
     out.update({
         "code": ctx["code"],
         "name": (ctx["quote"] or {}).get("name"),
